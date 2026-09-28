@@ -5,7 +5,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'R2 Images' })
 
 interface ImageUsage {
-  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover'
+  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
   label: string
   href?: string
   role?: string
@@ -720,7 +720,8 @@ function trashReferenceLabels(item: TrashItem): string[] {
     clubroom: 'Clubroom',
     editorialAlbum: 'Album',
     submission: 'Event submission',
-    collectionCover: 'Collection cover'
+    collectionCover: 'Collection cover',
+    competitionEntry: 'Competition entry'
   }
   return Object.entries(item.references)
     .filter(([, value]) => value)

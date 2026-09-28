@@ -44,6 +44,13 @@ const primarySections = computed(() => [
     count: stats.value?.collections ?? 0,
     meta: t('adminPool.sub'),
     to: localePath('/admin/submissions')
+  },
+  {
+    key: 'competitions',
+    title: t('adminCompetitions.title'),
+    count: stats.value?.competitions ?? 0,
+    meta: t('adminCompetitions.sub'),
+    to: localePath('/admin/competitions')
   }
 ])
 

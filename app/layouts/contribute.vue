@@ -13,6 +13,12 @@
 // code, so it is often the first and only page of the site they ever see.
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+// The competition page borrows this layout; its entries ARE shown to voters,
+// so the collection promise ("nothing is public") would be untrue there.
+const endStripLine = computed(() =>
+  route.path.includes('/compete/') ? t('compete.endStripLine') : t('contribute.endStripLine')
+)
 
 const localeHead = useLocaleHead()
 useHead(localeHead)
@@ -27,7 +33,7 @@ useHead(localeHead)
     <footer class="endstrip">
       <div class="endstrip__inner">
         <span class="endstrip__brand"><span class="endstrip__cu">CU</span>PHOTOCLUB</span>
-        <p class="endstrip__line">{{ t('contribute.endStripLine') }}</p>
+        <p class="endstrip__line">{{ endStripLine }}</p>
         <div class="endstrip__aside">
           <NuxtLink class="endstrip__contact" :to="localePath('/contacts')">
             {{ t('contribute.endStripContact') }}

@@ -7,7 +7,7 @@ import { PRIVATE_R2_PREFIX } from '~~/shared/r2Prefixes'
 // orphan. Keep every surface that can hold an image key in buildR2UsageMaps.
 
 export interface ImageUsage {
-  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover'
+  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
   label: string
   href?: string
   role?: string
@@ -96,6 +96,24 @@ async function listSubmissionRefs(prefix?: string) {
     ))
 }
 
+// Competition entries share the private contributions/ tree and the same
+// deletion hazard as submissions, so they are bounded by the same key range.
+async function listCompetitionEntryRefs(prefix?: string) {
+  const keyPrefix = submissionKeyPrefix(prefix)
+  if (!keyPrefix) return []
+
+  return db
+    .select({
+      r2Key: schema.competitionEntries.r2Key,
+      competitionId: schema.competitionEntries.competitionId
+    })
+    .from(schema.competitionEntries)
+    .where(and(
+      gte(schema.competitionEntries.r2Key, keyPrefix),
+      lt(schema.competitionEntries.r2Key, prefixUpperBound(keyPrefix))
+    ))
+}
+
 export interface R2UsageMaps {
   // Gallery-album photos, kept apart because the inventory counts them
   // separately from every other kind of reference.
@@ -108,7 +126,7 @@ export interface R2UsageMaps {
 // Reads every surface that can hold an image key. `prefix` only narrows the
 // submission lookup — the other tables are small enough to read whole.
 export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
-  const [galleryPhotos, posts, events, members, heroRows, historyRows, clubroomRows, editorialAlbums, collectionLinkRows, submissions, trashedKeys] = await Promise.all([
+  const [galleryPhotos, posts, events, members, heroRows, historyRows, clubroomRows, editorialAlbums, collectionLinkRows, submissions, competitionRows, competitionEntries, trashedKeys] = await Promise.all([
     db
       .select({
         photoId: schema.photos.id,
@@ -148,6 +166,8 @@ export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
       coverR2Key: schema.collectionLinks.coverR2Key
     }).from(schema.collectionLinks),
     listSubmissionRefs(prefix),
+    db.select({ id: schema.competitions.id, title: schema.competitions.title }).from(schema.competitions),
+    listCompetitionEntryRefs(prefix),
     trashedKeySet()
   ])
 
@@ -211,6 +231,16 @@ export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
       label: collectionLabelById.get(row.linkId) || 'Untitled collection',
       href: `/admin/submissions/${row.linkId}`,
       role: `submission · ${row.review}`
+    })
+  }
+
+  const competitionTitleById = new Map(competitionRows.map(row => [row.id, row.title]))
+  for (const row of competitionEntries) {
+    addUsage(otherUsage, row.r2Key, {
+      kind: 'competition-entry',
+      label: competitionTitleById.get(row.competitionId) || 'Untitled competition',
+      href: `/admin/competitions/${row.competitionId}`,
+      role: 'competition entry'
     })
   }
 

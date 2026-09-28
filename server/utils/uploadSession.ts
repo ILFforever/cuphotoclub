@@ -20,7 +20,7 @@ export interface UploadSession {
   // Which side owns this session. Exactly one of actorId / contributorId is set;
   // each side's endpoints check their own field and never the other's, so an
   // admin route can never act on a contributor's session or vice versa.
-  kind: 'admin' | 'contribution'
+  kind: 'admin' | 'contribution' | 'competition'
   // 0 for contributions. The column stays NOT NULL so the table never needs a
   // SQLite rebuild to migrate; no autoincrement user id is ever 0.
   actorId: number
@@ -178,7 +178,9 @@ async function cleanupExpiredUploadSessions(now: Date, event?: H3Event) {
       // objects in R2 that no submission row points at — a presigned PUT can
       // succeed while /complete never runs. Nothing else would ever collect
       // those, and the prefix is invisible to the admin media browser.
-      if (row.kind === 'contribution' && swept < SWEEP_OBJECTS_PER_RUN) {
+      // Competition sessions have the same failure mode, with the entry table
+      // as the referencing side.
+      if ((row.kind === 'contribution' || row.kind === 'competition') && swept < SWEEP_OBJECTS_PER_RUN) {
         const items = await db
           .select({ r2Key: schema.uploadSessionItems.r2Key })
           .from(schema.uploadSessionItems)
@@ -186,10 +188,15 @@ async function cleanupExpiredUploadSessions(now: Date, event?: H3Event) {
         const keys = [...new Set(items.map(item => item.r2Key))].filter(Boolean)
         if (keys.length) {
           const referenced = new Set(
-            (await db
-              .select({ r2Key: schema.collectionSubmissions.r2Key })
-              .from(schema.collectionSubmissions)
-              .where(inArray(schema.collectionSubmissions.r2Key, keys.slice(0, 90))))
+            (row.kind === 'competition'
+              ? await db
+                  .select({ r2Key: schema.competitionEntries.r2Key })
+                  .from(schema.competitionEntries)
+                  .where(inArray(schema.competitionEntries.r2Key, keys.slice(0, 90)))
+              : await db
+                  .select({ r2Key: schema.collectionSubmissions.r2Key })
+                  .from(schema.collectionSubmissions)
+                  .where(inArray(schema.collectionSubmissions.r2Key, keys.slice(0, 90))))
               .map(item => item.r2Key)
           )
           for (const key of keys) {
