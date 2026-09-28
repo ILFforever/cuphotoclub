@@ -27,6 +27,7 @@ Use `admin-manage` / `requireManageUsers` only for user management and site sett
 - **Photos modal** (album canvas): inline in `app/components/AdminAlbumForm.vue` around line 909
 - **Hero images page**: `app/pages/admin/hero-images.vue` → `/admin/hero-images`
 - **Dashboard**: `app/pages/admin/index.vue`
+- **Photo competitions**: admin at `app/pages/admin/competitions/` → `/admin/competitions`; public page + reveal at `app/pages/compete/[id]/`; rules (phases, vote cap, scoring) in `server/utils/competition.ts`. Entries live under `contributions/competitions/…` so `/images/` never serves them; participants use the `cu_comp` cookie, never the admin session.
 
 ## R2 object index (`r2_objects`)
 

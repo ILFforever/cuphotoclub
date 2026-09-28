@@ -169,6 +169,13 @@
       "when": 1789804851861,
       "tag": "0023_solid_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1790572751417,
+      "tag": "0024_safe_gateway",
+      "breakpoints": true
     }
   ]
 }

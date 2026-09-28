@@ -353,7 +353,7 @@ export const adminAuditLogs = sqliteTable('admin_audit_logs', {
 // endpoints for each kind check their own field and never the other's.
 export const uploadSessions = sqliteTable('upload_sessions', {
   id: text('id').primaryKey(),
-  kind: text('kind', { enum: ['admin', 'contribution'] }).notNull().default('admin'),
+  kind: text('kind', { enum: ['admin', 'contribution', 'competition'] }).notNull().default('admin'),
   // Stays NOT NULL so this table can be migrated with plain ADD COLUMNs.
   // Dropping the constraint would force SQLite to rebuild the table, and the
   // generated rebuild wraps DROP TABLE in `PRAGMA foreign_keys=OFF` — a pragma
@@ -362,7 +362,7 @@ export const uploadSessions = sqliteTable('upload_sessions', {
   // pragma would half-apply the migration. Contribution sessions store 0, which
   // no autoincrement user id can ever be.
   actorId: integer('actor_id').notNull(),
-  contributorId: text('contributor_id'), // set when kind = 'contribution'
+  contributorId: text('contributor_id'), // set when kind = 'contribution' (contributor id) or 'competition' (participant id)
   prefix: text('prefix').notNull(),
   createdAt,
   updatedAt
@@ -451,4 +451,114 @@ export const r2Objects = sqliteTable('r2_objects', {
 }, table => [
   index('r2_objects_folder_idx').on(table.folder),
   index('r2_objects_size_idx').on(table.size)
+])
+
+// ── Photo competitions ──────────────────────────────────────────────────────
+// Attendees upload entries, then attendees and/or judges vote on them; the
+// tally drives a ranked results page and a presenter-mode reveal. Separate from
+// photo collections on purpose: a collection is an admin-only pool, whereas a
+// competition's entries are shown to every voter.
+//
+// Entry objects live under contributions/competitions/… so the existing
+// PRIVATE_R2_PREFIX gate keeps them off /images/ — voters see them through
+// /api/compete/[id]/entries/[entryId]/image, which checks the phase first.
+
+export const competitions = sqliteTable('competitions', {
+  id: text('id').primaryKey(), // url-safe random token, part of the public URL
+  title: text('title').notNull(),
+  description: text('description'),
+  // draft       — hidden from everyone but admins
+  // submissions — joining + uploading open, gallery shows only your own entries
+  // voting      — uploads closed, gallery + votes open
+  // closed      — votes frozen, results not yet public
+  // results     — ranked results + reveal page are public
+  status: text('status', { enum: ['draft', 'submissions', 'voting', 'closed', 'results'] })
+    .notNull()
+    .default('draft'),
+  // roster — only people on the imported attendee list, via phone + accessCode
+  // open   — anyone with the link; identity is a cookie + claim code
+  accessMode: text('access_mode', { enum: ['roster', 'open'] }).notNull().default('roster'),
+  // Shared event code attendees type alongside their phone in roster mode.
+  // Stored plain: the admin has to read it out at the event, and on its own it
+  // grants nothing without a phone number that is on the roster.
+  accessCode: text('access_code'),
+  // Who decides: attendee votes, judge votes, or both (weighted).
+  scoring: text('scoring', { enum: ['public', 'judges', 'both'] }).notNull().default('public'),
+  publicWeight: integer('public_weight').notNull().default(1),
+  judgeWeight: integer('judge_weight').notNull().default(1),
+  maxEntriesPerPerson: integer('max_entries_per_person').notNull().default(3),
+  votesPerPerson: integer('votes_per_person').notNull().default(2),
+  votesPerJudge: integer('votes_per_judge').notNull().default(5),
+  maxBytesPerPhoto: integer('max_bytes_per_photo').notNull().default(15 * 1024 * 1024),
+  createdBy: integer('created_by').references(() => users.id),
+  createdAt,
+  updatedAt
+})
+
+// Everyone who can act in a competition. Attendees come from the roster import
+// (roster mode) or are created on first visit (open mode); judges are added by
+// an admin and sign in with their own code.
+export const competitionParticipants = sqliteTable('competition_participants', {
+  id: text('id').primaryKey(), // uuid
+  competitionId: text('competition_id')
+    .notNull()
+    .references(() => competitions.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['attendee', 'judge'] }).notNull().default('attendee'),
+  name: text('name').notNull(),
+  // Digits only (see normalizePhone). Roster attendees only.
+  phone: text('phone'),
+  groupName: text('group_name'),
+  // SHA-256 of a Crockford claim code: open-mode attendees (to move devices)
+  // and judges (their sign-in credential).
+  codeHash: text('code_hash'),
+  // Judges' code in plain text, so an admin can re-read it to hand out. Null
+  // for attendees, whose code is only ever held by themselves.
+  judgeCode: text('judge_code'),
+  createdAt,
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' })
+}, table => [
+  unique('competition_participants_phone_unq').on(table.competitionId, table.phone),
+  index('competition_participants_competition_idx').on(table.competitionId),
+  index('competition_participants_code_idx').on(table.competitionId, table.codeHash)
+])
+
+export const competitionEntries = sqliteTable('competition_entries', {
+  id: text('id').primaryKey(), // uuid
+  competitionId: text('competition_id')
+    .notNull()
+    .references(() => competitions.id, { onDelete: 'cascade' }),
+  participantId: text('participant_id')
+    .notNull()
+    .references(() => competitionParticipants.id, { onDelete: 'cascade' }),
+  title: text('title'),
+  r2Key: text('r2_key').notNull(),
+  hash: text('hash').notNull(),
+  size: integer('size').notNull().default(0),
+  type: text('type').notNull(),
+  createdAt
+}, table => [
+  // Re-sending the same photo is one entry, not two against the cap.
+  unique('competition_entries_participant_key_unq').on(table.participantId, table.r2Key),
+  index('competition_entries_competition_idx').on(table.competitionId),
+  index('competition_entries_key_idx').on(table.r2Key)
+])
+
+// One row per (voter, entry). The per-person vote cap is enforced by the
+// conditional INSERT in server/utils/competition.ts, not by a constraint.
+export const competitionVotes = sqliteTable('competition_votes', {
+  competitionId: text('competition_id')
+    .notNull()
+    .references(() => competitions.id, { onDelete: 'cascade' }),
+  entryId: text('entry_id')
+    .notNull()
+    .references(() => competitionEntries.id, { onDelete: 'cascade' }),
+  participantId: text('participant_id')
+    .notNull()
+    .references(() => competitionParticipants.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['attendee', 'judge'] }).notNull(),
+  createdAt
+}, table => [
+  primaryKey({ columns: [table.participantId, table.entryId] }),
+  index('competition_votes_competition_idx').on(table.competitionId),
+  index('competition_votes_entry_idx').on(table.entryId)
 ])
