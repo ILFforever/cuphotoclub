@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 
-// Delete a competition with its roster, entries and votes.
+// Delete a competition with its questions, roster, entries and votes.
 //
 // Rows only — same reasoning as deleting a photo collection
 // (server/api/admin/upload-links/[linkId].delete.ts): trashing every entry
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
   await db.delete(schema.competitionVotes).where(eq(schema.competitionVotes.competitionId, competition.id))
   await db.delete(schema.competitionEntries).where(eq(schema.competitionEntries.competitionId, competition.id))
   await db.delete(schema.competitionParticipants).where(eq(schema.competitionParticipants.competitionId, competition.id))
+  await db.delete(schema.competitionQuestions).where(eq(schema.competitionQuestions.competitionId, competition.id))
   await db.delete(schema.competitions).where(eq(schema.competitions.id, competition.id))
 
   await recordAdminAudit(actor, {

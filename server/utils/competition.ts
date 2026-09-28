@@ -11,13 +11,16 @@ import { and, asc, eq, sql } from 'drizzle-orm'
 export type Competition = typeof schema.competitions.$inferSelect
 export type CompetitionParticipant = typeof schema.competitionParticipants.$inferSelect
 export type CompetitionStatus = Competition['status']
+export type CompetitionQuestion = typeof schema.competitionQuestions.$inferSelect
 
 const PARTICIPANT_COOKIE = 'cu_comp'
 
 // Every competition entry sits under the private contributions/ prefix, so
 // /images/ refuses them and only the phase-checked image route can serve them.
-export function competitionPrefix(competitionId: string, participantId: string) {
-  return `contributions/competitions/${competitionId}/${participantId}`
+// The question is part of the key, so an upload session is bound to exactly
+// one question and the same photo sent to two questions is two entries.
+export function competitionPrefix(competitionId: string, participantId: string, questionId: string) {
+  return `contributions/competitions/${competitionId}/${participantId}/${questionId}`
 }
 
 // ── Phones ──────────────────────────────────────────────────────────────────
@@ -66,6 +69,29 @@ export async function isAdminRequest(event: H3Event) {
   return Boolean(user?.id && user?.email && user?.role)
 }
 
+// ── Questions ───────────────────────────────────────────────────────────────
+
+export async function listQuestions(competitionId: string) {
+  return db
+    .select()
+    .from(schema.competitionQuestions)
+    .where(eq(schema.competitionQuestions.competitionId, competitionId))
+    .orderBy(asc(schema.competitionQuestions.sortOrder), asc(schema.competitionQuestions.createdAt))
+}
+
+export async function requireQuestion(competition: Competition, questionId: string) {
+  const [row] = await db
+    .select()
+    .from(schema.competitionQuestions)
+    .where(and(
+      eq(schema.competitionQuestions.id, questionId),
+      eq(schema.competitionQuestions.competitionId, competition.id)
+    ))
+    .limit(1)
+  if (!row) throw createError({ statusCode: 404, message: 'ไม่พบหัวข้อนี้' })
+  return row
+}
+
 // ── Rules ───────────────────────────────────────────────────────────────────
 
 export function attendeesVote(competition: Competition) {
@@ -76,9 +102,10 @@ export function judgesVote(competition: Competition) {
   return competition.scoring !== 'public'
 }
 
-export function voteAllowance(competition: Competition, participant: CompetitionParticipant) {
-  if (participant.role === 'judge') return judgesVote(competition) ? competition.votesPerJudge : 0
-  return attendeesVote(competition) ? competition.votesPerPerson : 0
+// Votes are per question: x votes in each question, never a shared pool.
+export function voteAllowance(competition: Competition, question: CompetitionQuestion, participant: CompetitionParticipant) {
+  if (participant.role === 'judge') return judgesVote(competition) ? question.votesPerJudge : 0
+  return attendeesVote(competition) ? question.votesPerPerson : 0
 }
 
 export function competitionMaxBytes(competition: Competition) {
@@ -223,9 +250,21 @@ export async function participantOwnsKey(participantId: string, r2Key: string) {
   return Boolean(row)
 }
 
-export async function remainingEntries(competition: Competition, participant: CompetitionParticipant) {
+export async function participantQuestionEntryCount(participantId: string, questionId: string) {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)` })
+    .from(schema.competitionEntries)
+    .where(and(
+      eq(schema.competitionEntries.participantId, participantId),
+      eq(schema.competitionEntries.questionId, questionId)
+    ))
+  return Number(row?.total ?? 0)
+}
+
+// The photo limit applies to one question only.
+export async function remainingEntries(question: CompetitionQuestion, participant: CompetitionParticipant) {
   if (participant.role !== 'attendee') return 0
-  return Math.max(0, competition.maxEntriesPerPerson - await participantEntryCount(participant.id))
+  return Math.max(0, question.maxEntriesPerPerson - await participantQuestionEntryCount(participant.id, question.id))
 }
 
 export async function participantVotedEntryIds(participantId: string) {
@@ -242,11 +281,12 @@ export async function castVote(competition: Competition, participant: Competitio
   if (competition.status !== 'voting') {
     throw createError({ statusCode: 403, message: 'ยังไม่เปิดหรือปิดการโหวตแล้ว' })
   }
-  const allowance = voteAllowance(competition, participant)
-  if (allowance <= 0) throw createError({ statusCode: 403, message: 'คุณไม่มีสิทธิ์โหวตในการแข่งขันนี้' })
-
   const [entry] = await db
-    .select({ id: schema.competitionEntries.id, participantId: schema.competitionEntries.participantId })
+    .select({
+      id: schema.competitionEntries.id,
+      participantId: schema.competitionEntries.participantId,
+      questionId: schema.competitionEntries.questionId
+    })
     .from(schema.competitionEntries)
     .where(and(
       eq(schema.competitionEntries.id, entryId),
@@ -257,13 +297,20 @@ export async function castVote(competition: Competition, participant: Competitio
   if (entry.participantId === participant.id) {
     throw createError({ statusCode: 403, message: 'โหวตภาพของตัวเองไม่ได้' })
   }
+  const question = await requireQuestion(competition, entry.questionId || '')
+  const allowance = voteAllowance(competition, question, participant)
+  if (allowance <= 0) throw createError({ statusCode: 403, message: 'คุณไม่มีสิทธิ์โหวตในการแข่งขันนี้' })
 
   // One statement, so two taps racing each other cannot both slip under the
-  // cap: the row is only inserted while this voter's count is below it.
+  // cap: the row is only inserted while this voter's count *in this question*
+  // is below it.
   await db.run(sql`
-    INSERT OR IGNORE INTO competition_votes (competition_id, entry_id, participant_id, role)
-    SELECT ${competition.id}, ${entry.id}, ${participant.id}, ${participant.role}
-    WHERE (SELECT count(*) FROM competition_votes WHERE participant_id = ${participant.id}) < ${allowance}
+    INSERT OR IGNORE INTO competition_votes (competition_id, entry_id, participant_id, role, question_id)
+    SELECT ${competition.id}, ${entry.id}, ${participant.id}, ${participant.role}, ${question.id}
+    WHERE (
+      SELECT count(*) FROM competition_votes
+      WHERE participant_id = ${participant.id} AND question_id = ${question.id}
+    ) < ${allowance}
   `)
 
   const voted = await participantVotedEntryIds(participant.id)
@@ -290,6 +337,7 @@ export async function removeVote(competition: Competition, participant: Competit
 
 export interface CompetitionResult {
   id: string
+  questionId: string
   title: string | null
   participantId: string
   name: string
@@ -300,16 +348,18 @@ export interface CompetitionResult {
   rank: number
 }
 
-// Every entry with its tallies, best first. Ties share a rank (1, 1, 3), the
-// same competition ranking CU_Photo_3000 used, so a reveal never has to pick
-// arbitrarily between two photos with the same score.
+// Every entry with its tallies, ranked within its own question (each question
+// has its own winners), grouped in question order and best first. Ties share
+// a rank (1, 1, 3), the same competition ranking CU_Photo_3000 used, so a
+// reveal never has to pick arbitrarily between two photos with the same score.
 export async function computeResults(competition: Competition): Promise<CompetitionResult[]> {
-  const [entries, tallies] = await Promise.all([
+  const [entries, tallies, questions] = await Promise.all([
     db
       .select({
         id: schema.competitionEntries.id,
         title: schema.competitionEntries.title,
         participantId: schema.competitionEntries.participantId,
+        questionId: schema.competitionEntries.questionId,
         name: schema.competitionParticipants.name,
         groupName: schema.competitionParticipants.groupName,
         createdAt: schema.competitionEntries.createdAt
@@ -326,7 +376,8 @@ export async function computeResults(competition: Competition): Promise<Competit
       })
       .from(schema.competitionVotes)
       .where(eq(schema.competitionVotes.competitionId, competition.id))
-      .groupBy(schema.competitionVotes.entryId, schema.competitionVotes.role)
+      .groupBy(schema.competitionVotes.entryId, schema.competitionVotes.role),
+    listQuestions(competition.id)
   ])
 
   const byEntry = new Map<string, { attendee: number, judge: number }>()
@@ -344,6 +395,7 @@ export async function computeResults(competition: Competition): Promise<Competit
       + (useJudges ? tally.judge * competition.judgeWeight : 0)
     return {
       id: entry.id,
+      questionId: entry.questionId || '',
       title: entry.title,
       participantId: entry.participantId,
       name: entry.name,
@@ -355,10 +407,17 @@ export async function computeResults(competition: Competition): Promise<Competit
     }
   })
 
-  scored.sort((a, b) => b.score - a.score)
+  const order = new Map(questions.map((question, index) => [question.id, index]))
+  const position = (id: string) => order.get(id) ?? Number.MAX_SAFE_INTEGER
+  scored.sort((a, b) => position(a.questionId) - position(b.questionId) || b.score - a.score)
+  let place = 0
   scored.forEach((entry, index) => {
     const previous = scored[index - 1]
-    entry.rank = previous && previous.score === entry.score ? previous.rank : index + 1
+    if (!previous || previous.questionId !== entry.questionId) place = 0
+    place++
+    entry.rank = previous && previous.questionId === entry.questionId && previous.score === entry.score
+      ? previous.rank
+      : place
   })
   return scored
 }
@@ -397,14 +456,19 @@ export async function trashIfUnreferenced(key: string, deletedByName: string) {
 }
 
 // Shared guard for presign/complete: the session must be a competition
-// session owned by this participant and bound to this competition's prefix.
-export async function requireCompetitionUploadItem(event: H3Event, competition: Competition, participant: CompetitionParticipant) {
+// session owned by this participant and bound to this question's prefix.
+export async function requireCompetitionUploadItem(
+  event: H3Event,
+  competition: Competition,
+  question: CompetitionQuestion,
+  participant: CompetitionParticipant
+) {
   const session = await getUploadSession(getRouterParam(event, 'sessionId') || '')
   if (!session) throw createError({ statusCode: 404, message: 'ไม่พบรอบการอัปโหลด' })
   if (session.kind !== 'competition' || session.contributorId !== participant.id) {
     throw createError({ statusCode: 403, message: 'รอบการอัปโหลดนี้ไม่ใช่ของคุณ' })
   }
-  if (session.prefix !== sanitizeUploadPrefix(competitionPrefix(competition.id, participant.id))) {
+  if (session.prefix !== sanitizeUploadPrefix(competitionPrefix(competition.id, participant.id, question.id))) {
     throw createError({ statusCode: 403, message: 'รอบการอัปโหลดนี้ไม่ตรงกับการแข่งขัน' })
   }
   const itemId = decodeUploadItemId(getRouterParam(event, 'itemId') || '')

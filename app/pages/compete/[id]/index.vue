@@ -5,6 +5,9 @@
 //   not signed in → join: phone (roster), a name (open), or a judge code
 //   submissions   → upload entries (attendees), wait (judges)
 //   voting        → anonymous gallery, tap to vote
+//
+// A competition asks one or more questions, each with its own pool. Tabs pick
+// the question; the photo limit and the votes shown are that question's only.
 //   closed        → gallery read-only, results coming
 //   results       → link to the results page
 //
@@ -32,25 +35,36 @@ interface CompetitionState {
     accessMode: 'roster' | 'open'
     needsAccessCode: boolean
     scoring: 'public' | 'judges' | 'both'
-    maxEntriesPerPerson: number
-    votesPerPerson: number
-    votesPerJudge: number
     maxBytesPerPhoto: number
   }
+  questions: Question[]
   me: {
     name: string
     groupName: string | null
     role: Role
     code: string | null
+    votedEntryIds: string[]
+  } | null
+}
+
+interface Question {
+  id: string
+  title: string
+  description: string | null
+  maxEntriesPerPerson: number
+  votesPerPerson: number
+  votesPerJudge: number
+  mine: {
     entries: number
     remainingEntries: number
     votesAllowed: number
-    votedEntryIds: string[]
+    votesUsed: number
   } | null
 }
 
 interface EntryItem {
   id: string
+  questionId: string | null
   title: string | null
   mine?: boolean
   imageUrl: string
@@ -69,6 +83,14 @@ if (import.meta.server && !state.value) {
 const comp = computed(() => state.value?.competition ?? null)
 const me = computed(() => state.value?.me ?? null)
 const status = computed<Status>(() => comp.value?.status ?? 'draft')
+const questions = computed(() => state.value?.questions ?? [])
+
+// The question tab in view. Falls back to the first question whenever the
+// selected one disappears (an admin deleted it) or nothing is selected yet.
+const selectedQuestionId = ref<string | null>(null)
+const activeQuestion = computed(() =>
+  questions.value.find(question => question.id === selectedQuestionId.value) ?? questions.value[0] ?? null
+)
 
 useHead(() => ({ title: comp.value?.title || t('compete.title') }))
 
@@ -141,8 +163,26 @@ const votedIds = ref<string[]>([])
 watch(me, (value) => { votedIds.value = value?.votedEntryIds ?? [] }, { immediate: true })
 
 const showGallery = computed(() => ['voting', 'closed'].includes(status.value))
-const canVote = computed(() => status.value === 'voting' && (me.value?.votesAllowed ?? 0) > 0)
-const votesLeft = computed(() => Math.max(0, (me.value?.votesAllowed ?? 0) - votedIds.value.length))
+const mineHere = computed(() => mine.value.filter(entry => entry.questionId === activeQuestion.value?.id))
+const galleryHere = computed(() => gallery.value.filter(entry => entry.questionId === activeQuestion.value?.id))
+const remainingHere = computed(() => {
+  const question = activeQuestion.value
+  if (!question?.mine) return 0
+  return Math.max(0, question.maxEntriesPerPerson - mineHere.value.length)
+})
+
+function allowanceFor(questionId: string | null) {
+  return questions.value.find(question => question.id === questionId)?.mine?.votesAllowed ?? 0
+}
+// Counted from the gallery rather than the server's votesUsed so the number
+// follows each tap without a refetch. Votes are per question.
+function votesUsedIn(questionId: string | null) {
+  const inQuestion = new Set(gallery.value.filter(entry => entry.questionId === questionId).map(entry => entry.id))
+  return votedIds.value.filter(entryId => inQuestion.has(entryId)).length
+}
+const votesAllowedHere = computed(() => allowanceFor(activeQuestion.value?.id ?? null))
+const canVote = computed(() => status.value === 'voting' && votesAllowedHere.value > 0)
+const votesLeft = computed(() => Math.max(0, votesAllowedHere.value - votesUsedIn(activeQuestion.value?.id ?? null)))
 
 async function loadMine() {
   if (!me.value || me.value.role !== 'attendee') return
@@ -203,8 +243,9 @@ const votingBusy = ref<string | null>(null)
 async function toggleVote(entry: EntryItem) {
   if (!canVote.value || entry.mine || votingBusy.value) return
   const voted = votedIds.value.includes(entry.id)
-  if (!voted && votesLeft.value <= 0) {
-    errorMessage.value = t('compete.noVotesLeft', { n: me.value?.votesAllowed ?? 0 })
+  const allowance = allowanceFor(entry.questionId)
+  if (!voted && votesUsedIn(entry.questionId) >= allowance) {
+    errorMessage.value = t('compete.noVotesLeft', { n: allowance })
     return
   }
   votingBusy.value = entry.id
@@ -250,8 +291,7 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
           <h1 class="stage__title">{{ comp.title }}</h1>
           <p v-if="comp.description" class="stage__lead">{{ comp.description }}</p>
           <p class="stage__rules">
-            <span v-if="comp.status === 'submissions'">{{ t('compete.ruleEntries', { n: comp.maxEntriesPerPerson }) }}</span>
-            <span v-if="comp.scoring !== 'judges'">{{ t('compete.ruleVotes', { n: comp.votesPerPerson }) }}</span>
+            <span v-if="questions.length > 1">{{ t('compete.questionCount', { n: questions.length }) }}</span>
             <span v-if="comp.scoring !== 'public'">{{ t('compete.ruleJudges') }}</span>
           </p>
         </div>
@@ -336,27 +376,54 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
           </div>
           <p v-if="me.code" class="alert alert--quiet">{{ t('compete.saveCode') }} <strong class="code">{{ me.code }}</strong></p>
 
+          <!-- Question tabs. Hidden for a single-question competition. -->
+          <nav v-if="questions.length > 1 && status !== 'results'" class="qtabs" :aria-label="t('compete.questions')">
+            <button
+              v-for="question in questions"
+              :key="question.id"
+              type="button"
+              class="qtab"
+              :class="{ 'is-active': question.id === activeQuestion?.id }"
+              :aria-pressed="question.id === activeQuestion?.id"
+              @click="selectedQuestionId = question.id"
+            >
+              {{ question.title }}
+            </button>
+          </nav>
+          <div v-if="activeQuestion && status !== 'results'" class="qhead">
+            <h2 v-if="questions.length > 1" class="qhead__title">{{ activeQuestion.title }}</h2>
+            <p v-if="activeQuestion.description" class="qhead__desc">{{ activeQuestion.description }}</p>
+            <p class="stage__rules">
+              <span v-if="status === 'submissions' && me.role === 'attendee'">{{ t('compete.ruleEntries', { n: activeQuestion.maxEntriesPerPerson }) }}</span>
+              <span v-if="comp.scoring !== 'judges' && me.role === 'attendee'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerPerson }) }}</span>
+              <span v-if="comp.scoring !== 'public' && me.role === 'judge'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerJudge }) }}</span>
+            </p>
+          </div>
+
           <!-- Submissions -->
           <template v-if="status === 'submissions'">
-            <template v-if="me.role === 'attendee'">
-              <p class="count">{{ t('compete.entriesCount', { used: me.entries, max: comp.maxEntriesPerPerson }) }}</p>
-              <div v-if="me.remainingEntries > 0" class="zone">
+            <template v-if="me.role === 'attendee' && activeQuestion">
+              <p class="count">{{ t('compete.entriesCount', { used: mineHere.length, max: activeQuestion.maxEntriesPerPerson }) }}</p>
+              <!-- Keyed on the question: each question is its own upload
+                   session and limit, so switching tabs starts a fresh uploader. -->
+              <div v-if="remainingHere > 0" class="zone">
                 <AdminR2ImageUploader
+                  :key="activeQuestion.id"
                   v-model="uploadedKeys"
-                  :endpoint-base="`${api}/sessions`"
+                  :endpoint-base="`${api}/questions/${encodeURIComponent(activeQuestion.id)}/sessions`"
                   :remember-signatures="false"
                   :handoff-to-dock="false"
                   :show-compress-control="false"
                   :max-bytes="comp.maxBytesPerPhoto"
                   :show-previews="false"
-                  :max-files="me.remainingEntries"
+                  :max-files="remainingHere"
                   @uploaded="onUploaded"
                 />
               </div>
               <p v-else class="alert alert--quiet">{{ t('compete.limitReached') }}</p>
 
-              <ul v-if="mine.length" class="grid">
-                <li v-for="entry in mine" :key="entry.id" class="tile">
+              <ul v-if="mineHere.length" class="grid">
+                <li v-for="entry in mineHere" :key="entry.id" class="tile">
                   <img class="tile__img" :src="entry.imageUrl" alt="" loading="lazy">
                   <div class="tile__foot">
                     <input
@@ -380,14 +447,14 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
           <template v-else-if="showGallery">
             <p v-if="status === 'closed'" class="alert alert--quiet">{{ t('compete.closedNotice') }}</p>
             <p v-else-if="canVote" class="count">
-              {{ t('compete.votesLeft', { left: votesLeft, max: me.votesAllowed }) }}
+              {{ t('compete.votesLeft', { left: votesLeft, max: votesAllowedHere }) }}
             </p>
             <p v-else class="alert alert--quiet">{{ t('compete.cannotVote') }}</p>
 
-            <p v-if="!gallery.length" class="alert alert--quiet">{{ t('compete.noEntries') }}</p>
+            <p v-if="!galleryHere.length" class="alert alert--quiet">{{ t('compete.noEntries') }}</p>
             <ul v-else class="grid">
               <li
-                v-for="entry in gallery"
+                v-for="entry in galleryHere"
                 :key="entry.id"
                 class="tile"
                 :class="{ 'is-voted': votedIds.includes(entry.id), 'is-mine': entry.mine }"
@@ -651,6 +718,31 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
 .zone :deep(.r2up__cancel) { border-color: rgba(245, 244, 240, 0.22); color: rgba(245, 244, 240, 0.7); }
 .zone :deep(.r2up__error) { color: #FF8095; }
 .zone :deep(.r2up__failures) { background: rgba(176, 36, 60, 0.12); }
+
+/* ── Question tabs ──────────────────────────────────────────────────────── */
+.qtabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+.qtab {
+  flex: 0 0 auto;
+  border: 1px solid rgba(245, 244, 240, 0.22);
+  background: transparent;
+  color: rgba(245, 244, 240, 0.75);
+  padding: 0.55rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qtab:hover { border-color: var(--accent); }
+.qtab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.qhead { display: flex; flex-direction: column; gap: 0.35rem; }
+.qhead__title { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 300; }
+.qhead__desc { font-family: var(--font-sans); font-size: 0.8rem; line-height: 1.6; color: rgba(245, 244, 240, 0.7); white-space: pre-line; }
 
 /* ── Grid ───────────────────────────────────────────────────────────────── */
 .grid {

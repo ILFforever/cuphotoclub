@@ -1337,6 +1337,8 @@
     "pageOf": "Page {page} of {total}"
   },
   "compete": {
+    "questions": "Questions",
+    "questionCount": "{n} questions, each with its own winners",
     "title": "Photo competition",
     "eyebrow": "Photo competition",
     "phase": {
@@ -1422,6 +1424,19 @@
     "endStripLine": "Entries are visible to voters during voting. Results are published by the club."
   },
   "adminCompetitions": {
+    "questions": "Questions",
+    "questionsHint": "Each question has its own pool of photos and its own winners. Photo limits and votes count within each question only. For example, 2 votes per person means 2 votes in every question.",
+    "questionTitle": "Question",
+    "questionDescription": "Description (optional, shown to attendees)",
+    "newQuestion": "New question",
+    "newQuestionPlaceholder": "e.g. Best portrait",
+    "addQuestion": "Add question",
+    "questionAdded": "Question added.",
+    "questionSaved": "Question saved.",
+    "questionDeleted": "Question deleted.",
+    "deleteQuestionConfirm": "Delete “{title}”? Its {n} photos and all their votes will be removed.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
     "title": "Competitions",
     "sub": "Photo contests: attendees upload, then attendees and judges vote",
     "newTitle": "New competition",

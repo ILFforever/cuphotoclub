@@ -486,6 +486,10 @@ export const competitions = sqliteTable('competitions', {
   scoring: text('scoring', { enum: ['public', 'judges', 'both'] }).notNull().default('public'),
   publicWeight: integer('public_weight').notNull().default(1),
   judgeWeight: integer('judge_weight').notNull().default(1),
+  // Superseded by the per-question columns on competition_questions; kept
+  // only because dropping a column forces a SQLite table rebuild. Read by
+  // nothing except as the defaults the 0025 migration copied into each
+  // competition's first question.
   maxEntriesPerPerson: integer('max_entries_per_person').notNull().default(3),
   votesPerPerson: integer('votes_per_person').notNull().default(2),
   votesPerJudge: integer('votes_per_judge').notNull().default(5),
@@ -522,6 +526,26 @@ export const competitionParticipants = sqliteTable('competition_participants', {
   index('competition_participants_code_idx').on(table.competitionId, table.codeHash)
 ])
 
+// A competition asks one or more questions ("Best portrait", "Best
+// landscape"), each with its own pool of entries, its own per-person limits
+// and its own winners. Limits and votes are counted per question, never
+// across the whole competition.
+export const competitionQuestions = sqliteTable('competition_questions', {
+  id: text('id').primaryKey(), // uuid; also a segment of entry R2 keys
+  competitionId: text('competition_id')
+    .notNull()
+    .references(() => competitions.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  maxEntriesPerPerson: integer('max_entries_per_person').notNull().default(3),
+  votesPerPerson: integer('votes_per_person').notNull().default(2),
+  votesPerJudge: integer('votes_per_judge').notNull().default(5),
+  createdAt
+}, table => [
+  index('competition_questions_competition_idx').on(table.competitionId, table.sortOrder)
+])
+
 export const competitionEntries = sqliteTable('competition_entries', {
   id: text('id').primaryKey(), // uuid
   competitionId: text('competition_id')
@@ -530,6 +554,9 @@ export const competitionEntries = sqliteTable('competition_entries', {
   participantId: text('participant_id')
     .notNull()
     .references(() => competitionParticipants.id, { onDelete: 'cascade' }),
+  // Nullable only because it was added by ALTER TABLE; every row has one
+  // (0025 backfills them) and every write sets it.
+  questionId: text('question_id').references(() => competitionQuestions.id, { onDelete: 'cascade' }),
   title: text('title'),
   r2Key: text('r2_key').notNull(),
   hash: text('hash').notNull(),
@@ -540,10 +567,11 @@ export const competitionEntries = sqliteTable('competition_entries', {
   // Re-sending the same photo is one entry, not two against the cap.
   unique('competition_entries_participant_key_unq').on(table.participantId, table.r2Key),
   index('competition_entries_competition_idx').on(table.competitionId),
+  index('competition_entries_question_idx').on(table.questionId),
   index('competition_entries_key_idx').on(table.r2Key)
 ])
 
-// One row per (voter, entry). The per-person vote cap is enforced by the
+// One row per (voter, entry). The per-person, per-question vote cap is enforced by the
 // conditional INSERT in server/utils/competition.ts, not by a constraint.
 export const competitionVotes = sqliteTable('competition_votes', {
   competitionId: text('competition_id')
@@ -556,9 +584,13 @@ export const competitionVotes = sqliteTable('competition_votes', {
     .notNull()
     .references(() => competitionParticipants.id, { onDelete: 'cascade' }),
   role: text('role', { enum: ['attendee', 'judge'] }).notNull(),
+  // Denormalised from the entry so the per-question vote cap is one indexed
+  // count. Nullable for the same ALTER TABLE reason as on entries.
+  questionId: text('question_id').references(() => competitionQuestions.id, { onDelete: 'cascade' }),
   createdAt
 }, table => [
   primaryKey({ columns: [table.participantId, table.entryId] }),
+  index('competition_votes_voter_question_idx').on(table.participantId, table.questionId),
   index('competition_votes_competition_idx').on(table.competitionId),
   index('competition_votes_entry_idx').on(table.entryId)
 ])

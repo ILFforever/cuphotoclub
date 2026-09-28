@@ -5,6 +5,10 @@
 // 1st are announced one at a time behind a countdown, with confetti in the
 // rank's colour. After the podium the full ranking is listed underneath.
 //
+// Each question has its own winners, so the reveal runs per question: pick
+// one from the tabs, reveal it, move on to the next. Progress is kept per
+// question, so switching back and forth never re-runs a finished reveal.
+//
 // Public once the competition is in its results phase; before that only
 // admins can open it (the API refuses everyone else), so the reveal can be
 // rehearsed without leaking the winners.
@@ -17,6 +21,7 @@ const id = computed(() => String(route.params.id || ''))
 
 interface ResultRow {
   id: string
+  questionId: string
   title: string | null
   name: string
   groupName: string | null
@@ -30,6 +35,7 @@ interface ResultRow {
 interface ResultsState {
   competition: { id: string, title: string, status: string, scoring: 'public' | 'judges' | 'both' }
   preview: boolean
+  questions: { id: string, title: string }[]
   results: ResultRow[]
 }
 
@@ -42,19 +48,44 @@ useHead(() => ({ title: data.value?.competition.title ? `${data.value.competitio
 const REVEAL_ORDER = [3, 2, 1] as const
 type PodiumRank = typeof REVEAL_ORDER[number]
 
+const questions = computed(() => data.value?.questions ?? [])
+const selectedQuestionId = ref<string | null>(null)
+const activeQuestion = computed(() =>
+  questions.value.find(question => question.id === selectedQuestionId.value) ?? questions.value[0] ?? null
+)
+const questionResults = computed(() =>
+  (data.value?.results ?? []).filter(row => row.questionId === activeQuestion.value?.id)
+)
+
 // Top three distinct ranks with at least one point. Ties share a rank, so a
 // rank can hold several photos.
 const byRank = computed(() => {
   const map = new Map<number, ResultRow[]>()
-  for (const row of data.value?.results ?? []) {
+  for (const row of questionResults.value) {
     if (row.rank > 3 || row.score <= 0) continue
     map.set(row.rank, [...(map.get(row.rank) ?? []), row])
   }
   return map
 })
 const revealQueue = computed(() => REVEAL_ORDER.filter(rank => byRank.value.has(rank)))
-const revealIdx = ref(0)
-const currentRank = ref<PodiumRank | null>(null)
+// Reveal progress, per question.
+const progress = reactive<Record<string, { idx: number, current: PodiumRank | null }>>({})
+function stateFor(questionId: string) {
+  progress[questionId] ??= { idx: 0, current: null }
+  return progress[questionId]
+}
+const revealIdx = computed({
+  get: () => activeQuestion.value ? stateFor(activeQuestion.value.id).idx : 0,
+  set: (value: number) => { if (activeQuestion.value) stateFor(activeQuestion.value.id).idx = value }
+})
+const currentRank = computed({
+  get: () => activeQuestion.value ? stateFor(activeQuestion.value.id).current : null,
+  set: (value: PodiumRank | null) => { if (activeQuestion.value) stateFor(activeQuestion.value.id).current = value }
+})
+function selectQuestion(id: string) {
+  if (countdown.value) return
+  selectedQuestionId.value = id
+}
 const allRevealed = computed(() => revealIdx.value >= revealQueue.value.length)
 const nextRank = computed(() => revealQueue.value[revealIdx.value])
 const hasResults = computed(() => byRank.value.size > 0)
@@ -219,6 +250,21 @@ const visibleRanks = computed(() => {
         <p class="vr__sub">{{ t('compete.thanks') }}</p>
       </header>
 
+      <nav v-if="questions.length > 1" class="vr__qtabs" :aria-label="t('compete.questions')">
+        <button
+          v-for="question in questions"
+          :key="question.id"
+          type="button"
+          class="vr__qtab"
+          :class="{ 'is-active': question.id === activeQuestion?.id }"
+          :aria-pressed="question.id === activeQuestion?.id"
+          @click="selectQuestion(question.id)"
+        >
+          {{ question.title }}
+        </button>
+      </nav>
+      <h2 v-if="questions.length > 1 && activeQuestion" class="vr__question">{{ activeQuestion.title }}</h2>
+
       <p v-if="!hasResults" class="vr__empty">{{ t('compete.noResults') }}</p>
 
       <div class="vr__sections">
@@ -260,7 +306,7 @@ const visibleRanks = computed(() => {
         <section class="vr__table-wrap">
           <h2 class="vr__table-title">{{ t('compete.fullRanking') }}</h2>
           <ol class="vr__table">
-            <li v-for="row in data.results" :key="row.id" class="vr__row">
+            <li v-for="row in questionResults" :key="row.id" class="vr__row">
               <span class="vr__row-rank">{{ row.rank }}</span>
               <img class="vr__row-img" :src="row.imageUrl" alt="" loading="lazy">
               <span class="vr__row-main">
@@ -319,6 +365,25 @@ const visibleRanks = computed(() => {
   margin-top: 0.6rem;
 }
 .vr__sub { font-family: var(--font-sans); font-size: 0.85rem; color: rgba(245, 244, 240, 0.6); margin-top: 0.6rem; }
+.vr__qtabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: -1rem auto 1.5rem; max-width: 1000px; }
+.vr__qtab {
+  border: 1px solid rgba(245, 244, 240, 0.25);
+  background: transparent;
+  color: rgba(245, 244, 240, 0.75);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.vr__qtab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.vr__question {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+  font-weight: 300;
+  margin-bottom: 2rem;
+  color: rgba(245, 244, 240, 0.9);
+}
 .vr__empty { text-align: center; font-family: var(--font-sans); color: rgba(245, 244, 240, 0.6); }
 
 .vr__sections { display: flex; flex-direction: column; gap: 3rem; max-width: 1200px; margin: 0 auto; }

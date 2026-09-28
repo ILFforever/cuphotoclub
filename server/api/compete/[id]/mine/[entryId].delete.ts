@@ -14,11 +14,12 @@ export default defineEventHandler(async (event) => {
       eq(schema.competitionEntries.id, getRouterParam(event, 'entryId') || ''),
       eq(schema.competitionEntries.participantId, participant.id)
     ))
-    .returning({ r2Key: schema.competitionEntries.r2Key })
+    .returning({ r2Key: schema.competitionEntries.r2Key, questionId: schema.competitionEntries.questionId })
 
   const key = removed[0]?.r2Key
   if (!key) throw createError({ statusCode: 404, message: 'ไม่พบรูปนี้' })
   await trashIfUnreferenced(key, 'competition participant')
 
-  return { ok: true, remaining: await remainingEntries(competition, participant) }
+  const question = await requireQuestion(competition, removed[0]?.questionId || '')
+  return { ok: true, remaining: await remainingEntries(question, participant) }
 })

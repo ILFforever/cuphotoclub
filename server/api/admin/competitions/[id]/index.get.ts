@@ -1,12 +1,12 @@
 import { asc, eq, sql } from 'drizzle-orm'
 
-// Everything the admin competition page shows: settings, roster + judges,
+// Everything the admin competition page shows: settings, questions, roster + judges,
 // entries with live tallies, and how many votes each voter has used.
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const competition = await requireAdminCompetition(getRouterParam(event, 'id') || '')
 
-  const [participants, votesUsed, results] = await Promise.all([
+  const [participants, votesUsed, results, questions] = await Promise.all([
     db
       .select()
       .from(schema.competitionParticipants)
@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
       .from(schema.competitionVotes)
       .where(eq(schema.competitionVotes.competitionId, competition.id))
       .groupBy(schema.competitionVotes.participantId),
-    computeResults(competition)
+    computeResults(competition),
+    listQuestions(competition.id)
   ])
 
   const votesBy = new Map(votesUsed.map(row => [row.participantId, Number(row.total)]))
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'private, no-store')
   return {
     competition,
+    questions,
     participants: participants.map(row => ({
       id: row.id,
       role: row.role,

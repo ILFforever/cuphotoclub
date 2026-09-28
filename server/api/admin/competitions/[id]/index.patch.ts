@@ -12,6 +12,11 @@ export default defineEventHandler(async (event) => {
   if (!result.success) throw createError({ statusCode: 400, message: 'ข้อมูลไม่ถูกต้อง' })
   const input = result.data
 
+  // Nothing can be uploaded or voted on without a question to put it in.
+  if (input.status && input.status !== 'draft' && !(await listQuestions(competition.id)).length) {
+    throw createError({ statusCode: 400, message: 'กรุณาเพิ่มหัวข้ออย่างน้อยหนึ่งหัวข้อก่อนเปิดการประกวด' })
+  }
+
   const [updated] = await db
     .update(schema.competitions)
     .set({

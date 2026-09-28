@@ -11,13 +11,21 @@ export const competitionSettingsSchema = z.object({
   scoring: z.enum(['public', 'judges', 'both']),
   publicWeight: z.number().int().min(0).max(100),
   judgeWeight: z.number().int().min(0).max(100),
-  maxEntriesPerPerson: z.number().int().min(1).max(50),
-  votesPerPerson: z.number().int().min(1).max(50),
-  votesPerJudge: z.number().int().min(1).max(200),
   maxBytesPerPhoto: z.number().int().min(256 * 1024).max(MAX_UPLOAD_BYTES)
 })
 
 export type CompetitionSettings = z.infer<typeof competitionSettingsSchema>
+
+// One question: its own title, photo limit and vote allowances. All counted
+// within the question only.
+export const competitionQuestionSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(1000).nullable(),
+  maxEntriesPerPerson: z.number().int().min(1).max(50),
+  votesPerPerson: z.number().int().min(1).max(50),
+  votesPerJudge: z.number().int().min(1).max(200),
+  sortOrder: z.number().int().min(0).max(10_000)
+})
 
 export interface RosterRow {
   name: string

@@ -25,10 +25,17 @@ interface Competition {
   scoring: 'public' | 'judges' | 'both'
   publicWeight: number
   judgeWeight: number
+  maxBytesPerPhoto: number
+}
+
+interface Question {
+  id: string
+  title: string
+  description: string | null
+  sortOrder: number
   maxEntriesPerPerson: number
   votesPerPerson: number
   votesPerJudge: number
-  maxBytesPerPhoto: number
 }
 
 interface Participant {
@@ -45,6 +52,7 @@ interface Participant {
 
 interface Result {
   id: string
+  questionId: string
   title: string | null
   name: string
   groupName: string | null
@@ -57,6 +65,7 @@ interface Result {
 
 interface Detail {
   competition: Competition
+  questions: Question[]
   participants: Participant[]
   results: Result[]
 }
@@ -80,9 +89,6 @@ const form = reactive({
   scoring: 'public' as Competition['scoring'],
   publicWeight: 1,
   judgeWeight: 1,
-  maxEntriesPerPerson: 3,
-  votesPerPerson: 2,
-  votesPerJudge: 5,
   maxMb: 15
 })
 
@@ -96,9 +102,6 @@ function resetForm() {
   form.scoring = c.scoring
   form.publicWeight = c.publicWeight
   form.judgeWeight = c.judgeWeight
-  form.maxEntriesPerPerson = c.maxEntriesPerPerson
-  form.votesPerPerson = c.votesPerPerson
-  form.votesPerJudge = c.votesPerJudge
   form.maxMb = Math.round(c.maxBytesPerPhoto / (1024 * 1024))
 }
 watch(() => data.value?.competition, resetForm, { immediate: true })
@@ -128,9 +131,6 @@ function saveSettings() {
     scoring: form.scoring,
     publicWeight: Number(form.publicWeight),
     judgeWeight: Number(form.judgeWeight),
-    maxEntriesPerPerson: Number(form.maxEntriesPerPerson),
-    votesPerPerson: Number(form.votesPerPerson),
-    votesPerJudge: Number(form.votesPerJudge),
     maxBytesPerPhoto: Math.min(15, Math.max(1, Number(form.maxMb))) * 1024 * 1024
   }, t('adminCompetitions.saved'))
 }
@@ -140,6 +140,102 @@ function setPhase(status: Status) {
   if (!confirm(t('adminCompetitions.phaseConfirm', { phase: t(`adminCompetitions.status.${status}`) }))) return
   return patch({ status }, t('adminCompetitions.phaseChanged'))
 }
+
+// ── Questions ───────────────────────────────────────────────────────────────
+// Each question keeps its own editable copy, so typing in one row never
+// disturbs another and a refresh after saving resets only what was saved.
+type QuestionDraft = Omit<Question, 'id' | 'sortOrder'>
+const questionDrafts = ref<Record<string, QuestionDraft>>({})
+function draftOf(question: Question): QuestionDraft {
+  return {
+    title: question.title,
+    description: question.description ?? '',
+    maxEntriesPerPerson: question.maxEntriesPerPerson,
+    votesPerPerson: question.votesPerPerson,
+    votesPerJudge: question.votesPerJudge
+  }
+}
+watch(() => data.value?.questions, (list) => {
+  questionDrafts.value = Object.fromEntries((list ?? []).map(question => [question.id, draftOf(question)]))
+}, { immediate: true })
+
+const newQuestion = reactive<QuestionDraft>({ title: '', description: '', maxEntriesPerPerson: 3, votesPerPerson: 2, votesPerJudge: 5 })
+
+function questionBody(draft: QuestionDraft) {
+  return {
+    title: draft.title.trim(),
+    description: draft.description?.trim() || null,
+    maxEntriesPerPerson: Number(draft.maxEntriesPerPerson),
+    votesPerPerson: Number(draft.votesPerPerson),
+    votesPerJudge: Number(draft.votesPerJudge)
+  }
+}
+
+async function questionRequest(run: () => Promise<unknown>, success: string) {
+  error.value = ''
+  message.value = ''
+  try {
+    await run()
+    await refresh()
+    message.value = success
+  } catch (err) {
+    fail(err, t('admin.saveFailed'))
+  }
+}
+
+function addQuestion() {
+  if (!newQuestion.title.trim()) return
+  return questionRequest(async () => {
+    await $fetch(`${api.value}/questions`, { method: 'POST', body: questionBody(newQuestion) })
+    newQuestion.title = ''
+    newQuestion.description = ''
+  }, t('adminCompetitions.questionAdded'))
+}
+
+function saveQuestion(question: Question) {
+  const draft = questionDrafts.value[question.id]
+  if (!draft?.title.trim()) return
+  return questionRequest(
+    async () => {
+      await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'PATCH', body: questionBody(draft) })
+    },
+    t('adminCompetitions.questionSaved')
+  )
+}
+
+// Swap sort orders with the neighbour. Orders are renumbered 0..n first so
+// rows that share an order (or have gaps) still move predictably.
+function moveQuestion(index: number, delta: -1 | 1) {
+  const list = [...(data.value?.questions ?? [])]
+  const target = index + delta
+  if (target < 0 || target >= list.length) return
+  ;[list[index], list[target]] = [list[target]!, list[index]!]
+  return questionRequest(async () => {
+    for (const [order, question] of list.entries()) {
+      if (question.sortOrder === order) continue
+      await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'PATCH', body: { sortOrder: order } })
+    }
+  }, t('adminCompetitions.questionSaved'))
+}
+
+function deleteQuestion(question: Question) {
+  const count = (data.value?.results ?? []).filter(row => row.questionId === question.id).length
+  if (!confirm(t('adminCompetitions.deleteQuestionConfirm', { title: question.title, n: count }))) return
+  return questionRequest(
+    async () => {
+      await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'DELETE' })
+    },
+    t('adminCompetitions.questionDeleted')
+  )
+}
+
+// The tally, one group per question, each with its own ranking.
+const resultsByQuestion = computed(() =>
+  (data.value?.questions ?? []).map(question => ({
+    question,
+    results: (data.value?.results ?? []).filter(row => row.questionId === question.id)
+  }))
+)
 
 // ── Links ───────────────────────────────────────────────────────────────────
 const publicPath = computed(() => localePath(`/compete/${id.value}`))
@@ -337,23 +433,71 @@ function formatPhone(phone: string | null) {
             </label>
           </template>
           <label class="field field--small">
-            <span class="label">{{ t('adminCompetitions.maxEntries') }}</span>
-            <input v-model.number="form.maxEntriesPerPerson" class="input" type="number" min="1" max="50">
-          </label>
-          <label v-if="form.scoring !== 'judges'" class="field field--small">
-            <span class="label">{{ t('adminCompetitions.votesPerPerson') }}</span>
-            <input v-model.number="form.votesPerPerson" class="input" type="number" min="1" max="50">
-          </label>
-          <label v-if="form.scoring !== 'public'" class="field field--small">
-            <span class="label">{{ t('adminCompetitions.votesPerJudge') }}</span>
-            <input v-model.number="form.votesPerJudge" class="input" type="number" min="1" max="200">
-          </label>
-          <label class="field field--small">
             <span class="label">{{ t('adminCompetitions.maxMb') }}</span>
             <input v-model.number="form.maxMb" class="input" type="number" min="1" max="15">
           </label>
           <div class="form__actions">
             <button class="btn" type="submit" :disabled="saving">{{ saving ? t('admin.saving') : t('admin.save') }}</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Questions -->
+      <section class="panel">
+        <h2 class="panel__title">{{ t('adminCompetitions.questions') }} <span class="panel__count">{{ data.questions.length }}</span></h2>
+        <p class="hint">{{ t('adminCompetitions.questionsHint') }}</p>
+        <ol class="questions">
+          <li v-for="(question, index) in data.questions" :key="question.id" class="question">
+            <form v-if="questionDrafts[question.id]" class="question__form" @submit.prevent="saveQuestion(question)">
+              <span class="question__num">{{ index + 1 }}</span>
+              <label class="field question__title">
+                <span class="label">{{ t('adminCompetitions.questionTitle') }}</span>
+                <input v-model="questionDrafts[question.id]!.title" class="input" type="text" maxlength="200" required>
+              </label>
+              <label class="field field--small">
+                <span class="label">{{ t('adminCompetitions.maxEntries') }}</span>
+                <input v-model.number="questionDrafts[question.id]!.maxEntriesPerPerson" class="input" type="number" min="1" max="50">
+              </label>
+              <label v-if="data.competition.scoring !== 'judges'" class="field field--small">
+                <span class="label">{{ t('adminCompetitions.votesPerPerson') }}</span>
+                <input v-model.number="questionDrafts[question.id]!.votesPerPerson" class="input" type="number" min="1" max="50">
+              </label>
+              <label v-if="data.competition.scoring !== 'public'" class="field field--small">
+                <span class="label">{{ t('adminCompetitions.votesPerJudge') }}</span>
+                <input v-model.number="questionDrafts[question.id]!.votesPerJudge" class="input" type="number" min="1" max="200">
+              </label>
+              <label class="field field--wide">
+                <span class="label">{{ t('adminCompetitions.questionDescription') }}</span>
+                <input v-model="questionDrafts[question.id]!.description" class="input" type="text" maxlength="1000">
+              </label>
+              <div class="question__actions">
+                <button class="btn" type="submit">{{ t('admin.save') }}</button>
+                <button class="minibtn" type="button" :disabled="index === 0" :aria-label="t('adminCompetitions.moveUp')" @click="moveQuestion(index, -1)">↑</button>
+                <button class="minibtn" type="button" :disabled="index === data.questions.length - 1" :aria-label="t('adminCompetitions.moveDown')" @click="moveQuestion(index, 1)">↓</button>
+                <button class="minibtn" type="button" @click="deleteQuestion(question)">{{ t('admin.delete') }}</button>
+              </div>
+            </form>
+          </li>
+        </ol>
+        <form class="question__form question__form--new" @submit.prevent="addQuestion">
+          <label class="field question__title">
+            <span class="label">{{ t('adminCompetitions.newQuestion') }}</span>
+            <input v-model="newQuestion.title" class="input" type="text" maxlength="200" :placeholder="t('adminCompetitions.newQuestionPlaceholder')">
+          </label>
+          <label class="field field--small">
+            <span class="label">{{ t('adminCompetitions.maxEntries') }}</span>
+            <input v-model.number="newQuestion.maxEntriesPerPerson" class="input" type="number" min="1" max="50">
+          </label>
+          <label v-if="data.competition.scoring !== 'judges'" class="field field--small">
+            <span class="label">{{ t('adminCompetitions.votesPerPerson') }}</span>
+            <input v-model.number="newQuestion.votesPerPerson" class="input" type="number" min="1" max="50">
+          </label>
+          <label v-if="data.competition.scoring !== 'public'" class="field field--small">
+            <span class="label">{{ t('adminCompetitions.votesPerJudge') }}</span>
+            <input v-model.number="newQuestion.votesPerJudge" class="input" type="number" min="1" max="200">
+          </label>
+          <div class="question__actions">
+            <button class="btn" type="submit" :disabled="!newQuestion.title.trim()">{{ t('adminCompetitions.addQuestion') }}</button>
           </div>
         </form>
       </section>
@@ -422,7 +566,7 @@ function formatPhone(phone: string | null) {
             <tr v-for="p in judges" :key="p.id">
               <td>{{ p.name }}</td>
               <td class="mono">{{ p.judgeCode }}</td>
-              <td class="num">{{ p.votes }} / {{ data.competition.votesPerJudge }}</td>
+              <td class="num">{{ p.votes }}</td>
               <td class="num"><button class="minibtn" type="button" @click="removeParticipant(p)">{{ t('admin.delete') }}</button></td>
             </tr>
           </tbody>
@@ -434,8 +578,12 @@ function formatPhone(phone: string | null) {
         <h2 class="panel__title">{{ t('adminCompetitions.entries') }} <span class="panel__count">{{ data.results.length }}</span></h2>
         <p class="hint">{{ t('adminCompetitions.entriesHint') }}</p>
         <p v-if="!data.results.length" class="hint">{{ t('adminCompetitions.noEntries') }}</p>
-        <ul v-else class="entries">
-          <li v-for="entry in data.results" :key="entry.id" class="entry">
+        <template v-for="group in resultsByQuestion" :key="group.question.id">
+        <h3 v-if="data.questions.length > 1 && data.results.length" class="group-title">
+          {{ group.question.title }} <span class="panel__count">{{ group.results.length }}</span>
+        </h3>
+        <ul v-if="group.results.length" class="entries">
+          <li v-for="entry in group.results" :key="entry.id" class="entry">
             <a :href="entry.imageUrl" target="_blank" rel="noopener" class="entry__img-link">
               <img class="entry__img" :src="entry.imageUrl" alt="" loading="lazy">
             </a>
@@ -452,6 +600,7 @@ function formatPhone(phone: string | null) {
             </div>
           </li>
         </ul>
+        </template>
       </section>
 
       <section class="panel panel--danger">
@@ -587,6 +736,21 @@ function formatPhone(phone: string | null) {
 .table td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--subtle); color: var(--dark); }
 .table .num { text-align: right; white-space: nowrap; }
 
+.questions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.question { background: #fff; border: 1px solid var(--subtle); padding: 0.8rem 0.9rem; }
+.question__form { display: flex; flex-wrap: wrap; gap: 0.7rem 0.9rem; align-items: flex-end; }
+.question__form--new { border: 1px dashed var(--subtle); padding: 0.8rem 0.9rem; }
+.question__num { font-family: var(--font-serif); font-size: 1.4rem; color: var(--accent); align-self: center; min-width: 1.2rem; }
+.question__title { flex: 1 1 16rem; }
+.question__actions { display: flex; gap: 0.4rem; align-items: center; }
+.minibtn:disabled { opacity: 0.4; cursor: default; }
+.group-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--dark);
+  margin-top: 0.4rem;
+}
 .entries { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.9rem; }
 .entry { background: #fff; border: 1px solid var(--subtle); display: flex; flex-direction: column; }
 .entry__img-link { display: block; }

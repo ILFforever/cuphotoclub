@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
   const result = await readValidatedBody(event, bodySchema.safeParse)
   if (!result.success) throw createError({ statusCode: 400, message: 'ข้อมูลไม่ถูกต้อง' })
 
-  const { session, item } = await requireCompetitionUploadItem(event, competition, participant)
+  const question = await requireQuestion(competition, getRouterParam(event, 'questionId') || '')
+  const { session, item } = await requireCompetitionUploadItem(event, competition, question, participant)
   if (item.status === 'exists' || item.status === 'uploaded') {
     return { key: item.key, status: item.status, duplicate: item.status === 'exists' }
   }
