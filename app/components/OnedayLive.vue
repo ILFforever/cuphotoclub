@@ -355,7 +355,7 @@ const staffLine = (i: { owner: string, kit: string }) =>
 }
 .odl__main { position: relative; z-index: 1; margin-top: -3rem; }
 
-.top { max-width: 40rem; margin: 0 auto; padding: 0 1rem; border-bottom: 2px solid var(--accent); }
+.top { max-width: 40rem; margin: 0 auto; padding: 0 1rem; }
 .top__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .mark {
   font-family: var(--font-latin-sans);
@@ -399,10 +399,19 @@ const staffLine = (i: { owner: string, kit: string }) =>
   line-height: 1.08;
   text-wrap: balance;
 }
-.tabs { display: grid; grid-template-columns: 1fr 1fr; margin-top: 1.1rem; }
+/* One faint track under both tabs; the active tab's pink bar sits on top of
+   it (the -1px margin overlaps the track) so there is only one coloured line,
+   matching the pink underline on the active language. */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 1.1rem;
+  border-bottom: 1px solid rgba(245, 244, 240, 0.14);
+}
 .tab {
   text-align: left;
   padding: 0.7rem 0.2rem 0.8rem;
+  margin-bottom: -1px;
   border: 0;
   border-bottom: 3px solid transparent;
   background: none;
@@ -412,7 +421,7 @@ const staffLine = (i: { owner: string, kit: string }) =>
   flex-direction: column;
   gap: 0.15rem;
 }
-.tab[aria-selected="true"] { color: #F5F4F0; border-bottom-color: #F5F4F0; }
+.tab[aria-selected="true"] { color: #F5F4F0; border-bottom-color: var(--accent); }
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tab__date { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; display: flex; gap: 0.5rem; align-items: center; }
 .tab__today { color: var(--accent); font-weight: 500; }
