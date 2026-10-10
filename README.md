@@ -1,6 +1,6 @@
 # CU Photo Club
 
-The website for **CU Photo Club** (ชมรมศิลปะการถ่ายภาพแห่งจุฬาลงกรณ์มหาวิทยาลัย) — the official photography club of Chulalongkorn University. It's an editorial photography showcase (albums, a blog, activities/events, member profiles) plus a small CMS the club's own admins use to run it, and a no-login upload flow for event attendees to submit photos.
+The website for **CU Photo Club** (ชมรมศิลปะการถ่ายภาพแห่งจุฬาลงกรณ์มหาวิทยาลัย) — the official photography club of Chulalongkorn University. It's an editorial photography showcase (albums, activities/events, a gallery of event websites, member profiles) plus a small CMS the club's own admins use to run it, and a no-login upload flow for event attendees to submit photos.
 
 **Live site: [cuphotoclub.com](https://cuphotoclub.com/)**
 
@@ -17,7 +17,7 @@ Bilingual throughout: every page ships in English and Thai.
 - **`nuxt-auth-utils`** for admin session auth (password + optional Google OAuth)
 - **`@nuxtjs/i18n`** for English/Thai routing and translations
 - **Scoped `<style>` + CSS variables** (BEM-ish) everywhere — Tailwind CSS v4 is wired up but is legacy on a handful of older files, not the active convention. See [Styling](#styling--conventions) below.
-- **`@nuxt/content`** for a handful of markdown-seeded albums/posts (`content/albums`, `content/posts`)
+- **`@nuxt/content`** for a handful of markdown-seeded albums (`content/albums`)
 - **Zod**, **exifr** (EXIF reading), **heic2any** (HEIC→JPEG conversion for uploads)
 
 ## Getting started
@@ -74,10 +74,10 @@ server/db/migrations/  generated SQL migrations
 server/utils/           shared server logic (auth, albumStore, r2, settings, slug…)
 shared/types.ts         types shared between client and server (Album, AlbumStyle, etc.)
 i18n/locales/           en.json / th.json — all user-facing strings
-content/albums, content/posts   a handful of markdown-seeded albums/posts (@nuxt/content)
+content/albums                    a handful of markdown-seeded albums (@nuxt/content)
 ```
 
-**Public site** — `app/pages/index.vue` (home, with a hero section), `albums/` (the photography showcase — each album renders in one of several visual "styles": `essay`, `sticky`, `contact`, `darkroom`, `chapters`), `blog/` and `posts/` (block-based editorial posts), `activities/` (club events), `members/`, `about.vue`, `contacts.vue`. Most public pages are cached at the edge via `swr` route rules (see `nuxt.config.ts`) to survive traffic bursts.
+**Public site** — `app/pages/index.vue` (home, with a hero section), `albums/` (the photography showcase — each album renders in one of several visual "styles": `essay`, `sticky`, `contact`, `darkroom`, `chapters`), `events/` (gallery of event websites, each linking to its own site), `activities/` (club events), `members/`, `about.vue`, `contacts.vue`. Most public pages are cached at the edge via `swr` route rules (see `nuxt.config.ts`) to survive traffic bursts.
 
 **Contribute flow** — `app/pages/contribute/[token].vue` and `server/api/contribute/[token]/**`. An admin creates a share link (a "collection") from `/admin`; anyone with the link can upload photos without an account. Identity is a lightweight per-device **claim code** (stored in a `collection_contributors` row, hashed) rather than a real login, so the same contributor can come back and edit/delete their own submissions from another device by entering the code. Uploaded photos land in an admin-only **submissions pool** (`collection_submissions`) — nothing here is public until an admin reviews and approves it into a real album. See `docs/dev/event-photo-submissions.md` for the fuller design.
 
@@ -88,11 +88,11 @@ content/albums, content/posts   a handful of markdown-seeded albums/posts (@nuxt
 | `admin` | `requireAdmin()` | any logged-in user (owner/admin/editor) |
 | `admin-manage` | `requireManageUsers()` | `owner` or `admin` role only |
 
-Content management (albums, posts, hero images, activities, members, upload links, the submissions pool) uses `admin`, so editors can do their job; user management and site-wide settings use `admin-manage`. Admin pages use scoped CSS + CSS variables rather than Tailwind (see below).
+Content management (albums, hero images, activities, members, upload links, the submissions pool) uses `admin`, so editors can do their job; user management and site-wide settings use `admin-manage`. Admin pages use scoped CSS + CSS variables rather than Tailwind (see below).
 
 ## Styling & conventions
 
-- **All new pages/components** (public and admin): `<style scoped>`, BEM-style class names, CSS variables (`var(--dark)`, `var(--muted)`, `var(--accent)`, etc.) — not Tailwind utilities. `CLAUDE.md` describes this as an admin-only rule with Tailwind on public pages, but that's stale: every current public page (`index.vue`, `albums/`, `blog/`, `contribute/[token].vue`, etc.) is already scoped CSS. A few older admin components (e.g. `CoverUploader.vue`) still carry Tailwind classes from before the convention settled — don't add more to them, migrate opportunistically when you're already touching one.
+- **All new pages/components** (public and admin): `<style scoped>`, BEM-style class names, CSS variables (`var(--dark)`, `var(--muted)`, `var(--accent)`, etc.) — not Tailwind utilities. `CLAUDE.md` describes this as an admin-only rule with Tailwind on public pages, but that's stale: every current public page (`index.vue`, `albums/`, `events/`, `contribute/[token].vue`, etc.) is already scoped CSS. A few older admin components (e.g. `CoverUploader.vue`) still carry Tailwind classes from before the convention settled — don't add more to them, migrate opportunistically when you're already touching one.
 - **i18n**: every user-facing string goes through `useI18n()` / `t()`, with keys added to both `i18n/locales/en.json` and `i18n/locales/th.json`. Never hardcode English or Thai text in a template.
 
 A repo-root `CLAUDE.md` documents these (and a few other) conventions in more depth for AI-assisted development (Claude Code) — worth a read if you're contributing with an AI pair-programmer, but it's not required reading for normal human contribution.

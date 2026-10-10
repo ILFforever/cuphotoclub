@@ -7,7 +7,7 @@ import { PRIVATE_R2_PREFIX } from '~~/shared/r2Prefixes'
 // orphan. Keep every surface that can hold an image key in buildR2UsageMaps.
 
 export interface ImageUsage {
-  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
+  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
   label: string
   href?: string
   role?: string
@@ -126,7 +126,7 @@ export interface R2UsageMaps {
 // Reads every surface that can hold an image key. `prefix` only narrows the
 // submission lookup — the other tables are small enough to read whole.
 export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
-  const [galleryPhotos, posts, events, members, heroRows, historyRows, clubroomRows, editorialAlbums, collectionLinkRows, submissions, competitionRows, competitionEntries, trashedKeys] = await Promise.all([
+  const [galleryPhotos, events, members, heroRows, historyRows, clubroomRows, editorialAlbums, collectionLinkRows, submissions, competitionRows, competitionEntries, trashedKeys] = await Promise.all([
     db
       .select({
         photoId: schema.photos.id,
@@ -138,12 +138,6 @@ export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
       })
       .from(schema.photos)
       .leftJoin(schema.albums, eq(schema.photos.albumId, schema.albums.id)),
-    db.select({
-      id: schema.posts.id,
-      slug: schema.posts.slug,
-      title: schema.posts.title,
-      coverR2Key: schema.posts.coverR2Key
-    }).from(schema.posts).orderBy(desc(schema.posts.createdAt)),
     db.select({
       id: schema.events.id,
       slug: schema.events.slug,
@@ -181,15 +175,6 @@ export async function buildR2UsageMaps(prefix?: string): Promise<R2UsageMaps> {
       label: row.albumTitle,
       href: `/admin/galleries/${row.albumId}`,
       role: row.photoId === row.coverPhotoId ? 'cover' : 'photo'
-    })
-  }
-
-  for (const post of posts) {
-    addUsage(otherUsage, post.coverR2Key, {
-      kind: 'post-cover',
-      label: post.title,
-      href: `/admin/blog/${post.id}`,
-      role: 'post cover'
     })
   }
 

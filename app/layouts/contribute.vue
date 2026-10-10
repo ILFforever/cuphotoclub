@@ -16,9 +16,12 @@ const localePath = useLocalePath()
 const route = useRoute()
 // The competition page borrows this layout; its entries ARE shown to voters,
 // so the collection promise ("nothing is public") would be untrue there.
-const endStripLine = computed(() =>
-  route.path.includes('/compete/') ? t('compete.endStripLine') : t('contribute.endStripLine')
-)
+const endStripLine = computed(() => {
+  if (route.path.includes('/compete/')) return t('compete.endStripLine')
+  // Temporary Basic Control & One Day Trip pages (see shared/oneday2026.ts).
+  if (route.path.includes('/events/oneday-2026')) return t('oneday.endStripLine')
+  return t('contribute.endStripLine')
+})
 
 const localeHead = useLocaleHead()
 useHead(localeHead)

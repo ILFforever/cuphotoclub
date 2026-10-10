@@ -77,7 +77,7 @@ export function useLocalizedSite(site: Ref<SiteConfig | null | undefined>) {
         columns: [
           {
             // Footer nav is intentionally light — top-level destinations
-            // (Albums, Blog, Contact, Join…) already live in the header, so the
+            // (Albums, Events, Contact, Join…) already live in the header, so the
             // footer only carries the pages that aren't in the header: the
             // homepage narrative anchors and the credits page.
             title: t('site.footer.columns.0.title'),

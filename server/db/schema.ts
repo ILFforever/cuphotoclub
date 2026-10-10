@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
-import type { AlbumRow, AlbumStyle, ContentStatus, HeroStyle, Placement, PostBlock, TextAlign, TextFont } from '~~/shared/types'
+import type { AlbumRow, AlbumStyle, ContentStatus, Placement, TextAlign, TextFont } from '~~/shared/types'
 
 const createdAt = integer('created_at', { mode: 'timestamp' })
   .notNull()
@@ -63,24 +63,6 @@ export const photos = sqliteTable('photos', {
   // filter or join photos on album_id, so without this each read is a full scan.
   index('photos_album_id_idx').on(table.albumId)
 ])
-
-export const posts = sqliteTable('posts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  slug: text('slug').notNull().unique(),
-  title: text('title').notNull(),
-  excerpt: text('excerpt'),
-  body: text('body').notNull().default(''), // markdown
-  coverR2Key: text('cover_r2_key'),
-  tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
-  status: text('status', { enum: ['draft', 'published'] })
-    .notNull()
-    .default('draft'),
-  publishedAt: integer('published_at', { mode: 'timestamp' }),
-  authorId: integer('author_id').references(() => users.id),
-  updatedBy: integer('updated_by').references(() => users.id),
-  createdAt,
-  updatedAt
-})
 
 export const events = sqliteTable('events', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -280,8 +262,8 @@ export const settings = sqliteTable('settings', {
 })
 
 // ─── Editorial content stores ────────────────────────────────────────────────
-// Slug-keyed editorial content (Lego-grid albums, block-based posts) managed by
-// albumStore / postStore. Separate from the relational `albums` / `posts` tables
+// Slug-keyed editorial content (Lego-grid albums) managed by
+// albumStore. Separate from the relational `albums` table
 // above, which model the photo-gallery domain (integer ids, R2 photos, FKs).
 
 // Lego-grid albums seeded from content/albums/*.md.
@@ -310,27 +292,6 @@ export const contentAlbums = sqliteTable('content_albums', {
   photoCount: integer('photo_count').notNull().default(0),
   rows: text('rows_json', { mode: 'json' }).$type<AlbumRow[]>().notNull().default(sql`'[]'`),
   textDefaults: text('text_defaults_json', { mode: 'json' }).$type<{ align?: TextAlign, font?: TextFont }>(),
-  createdAt,
-  updatedAt
-})
-
-// Block-based editorial posts.
-export const contentPosts = sqliteTable('content_posts', {
-  id: text('id').primaryKey(),
-  title: text('title').notNull(),
-  tag: text('tag').notNull(),
-  date: text('date').notNull(),
-  published: text('published').notNull(),
-  visibility: text('visibility').$type<ContentStatus>().notNull().default('public'),
-  image: text('image').notNull(),
-  excerpt: text('excerpt').notNull(),
-  blocks: text('body', { mode: 'json' }).$type<PostBlock[]>().notNull().default(sql`'[]'`),
-  heroStyle: text('hero_style').$type<HeroStyle>().notNull().default('standard'),
-  author: text('author').notNull().default(''),
-  authorBio: text('author_bio').notNull().default(''),
-  authorAvatar: text('author_avatar').notNull().default(''),
-  createdBy: integer('created_by').references(() => users.id),
-  updatedBy: integer('updated_by').references(() => users.id),
   createdAt,
   updatedAt
 })

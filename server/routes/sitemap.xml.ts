@@ -29,30 +29,27 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const base = (config.public.siteUrl || getRequestURL(event).origin).replace(/\/+$/, '')
 
-  const [albums, posts, eventRows] = await Promise.all([
+  const [albums, eventRows] = await Promise.all([
     // Slugs only — no reason to pull every album's `rows` JSON to build a URL list.
     albumStore.listMeta({ visibility: ['public'] }),
-    postStore.list(),
     db.select({ slug: schema.events.slug })
       .from(schema.events)
       .where(eq(schema.events.status, 'published'))
   ])
 
   const albumSlugs = albums.items.map(a => decodeRouteSegment(a.slug))
-  const postSlugs = posts.filter(p => p.visibility === 'public').map(p => p.id)
   const eventSlugs = eventRows.map(e => e.slug)
 
   const paths = [
     '/',
     '/albums',
-    '/blog',
+    '/events',
     '/activities',
     '/about',
     '/contacts',
     '/developed-by',
     '/members',
     ...albumSlugs.map(slug => `/albums/${slug}`),
-    ...postSlugs.map(slug => `/blog/${slug}`),
     ...eventSlugs.map(slug => `/activities/${slug}`)
   ]
 

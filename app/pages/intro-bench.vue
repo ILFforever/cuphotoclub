@@ -10,7 +10,7 @@ const site = ref(defaultSite)
 const localizedSite = useLocalizedSite(site)
 
 const { data: home } = await useAsyncData('home', () =>
-  $fetch('/api/home').catch(() => ({ albums: [], posts: [], events: [] }))
+  $fetch('/api/home').catch(() => ({ albums: [], events: [] }))
 )
 
 function imageSrc(key: string | null | undefined) {

@@ -48,7 +48,6 @@ watchEffect(() => {
 const saving = ref(false)
 const savedMsg = ref('')
 const activityImagePickerOpen = ref(false)
-const postImagePickerOpen = ref(false)
 function addGalleryImages(keys: string[]) {
   form.galleryR2Keys = [...new Set([...form.galleryR2Keys, ...keys.filter(Boolean)])].slice(0, 24)
 }
@@ -167,10 +166,6 @@ async function remove() {
                 <Icon name="heroicons:photo" class="size-4" />
                 {{ t('adminActivities.chooseActivityImages') }}
               </UiButton>
-              <UiButton variant="secondary" size="sm" @click="postImagePickerOpen = true">
-                <Icon name="heroicons:photo" class="size-4" />
-                {{ t('adminActivities.choosePostImages') }}
-              </UiButton>
             </div>
             <span>{{ t('adminActivities.galleryOrderHint') }}</span>
           </div>
@@ -255,14 +250,6 @@ async function remove() {
       :prefix="`events/${id}`"
       multiple
       :title="t('adminActivities.chooseActivityImages')"
-      @select="addGalleryImages"
-    />
-
-    <AdminImagePickerModal
-      v-model="postImagePickerOpen"
-      prefix="content-posts"
-      multiple
-      :title="t('adminActivities.choosePostImages')"
       @select="addGalleryImages"
     />
   </div>

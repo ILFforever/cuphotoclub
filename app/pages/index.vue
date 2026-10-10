@@ -14,7 +14,7 @@ const localizedSite = useLocalizedSite(site)
 // would serialize three round trips into the SSR time.
 const [{ data: home }, { data: heroImagesData }, { data: landingImagesData }] = await Promise.all([
   useAsyncData('home', () =>
-    $fetch('/api/home').catch(() => ({ albums: [], posts: [], events: [] }))
+    $fetch('/api/home').catch(() => ({ albums: [], events: [] }))
   ),
   useAsyncData('hero-images', () =>
     $fetch<{ images: string[] }>('/api/hero-images').catch(() => ({ images: [] }))
@@ -113,11 +113,10 @@ const activityItems = computed(() =>
     .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'))
 )
 
-// ── Stories: albums and posts only, newest first.
+// ── Stories: albums only, newest first.
 const feed = computed(() => {
   const albumItems = (home.value?.albums ?? [])
     .map(a => ({
-      kind: 'album' as const,
       title: a.title,
       tag: t('common.album'),
       date: a.eventDate ?? '',
@@ -127,19 +126,7 @@ const feed = computed(() => {
       path: localizedPath(albumPath(a))
     }))
     .filter(a => a.image)
-  const postItems = (home.value?.posts ?? [])
-    .map(p => ({
-      kind: 'post' as const,
-      title: p.title,
-      tag: t('admin.posts'),
-      date: p.publishedAt ?? '',
-      published: p.publishedAt ?? '',
-      image: imageSrc(p.coverR2Key),
-      excerpt: p.excerpt ?? '',
-      path: localizedPath(`/blog/${p.slug}`)
-    }))
-    .filter(p => p.image)
-  return [...albumItems, ...postItems].sort((a, b) => b.published.localeCompare(a.published))
+  return albumItems.sort((a, b) => b.published.localeCompare(a.published))
 })
 
 const leadStory = computed(() => feed.value[0] ?? null)

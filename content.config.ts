@@ -12,7 +12,7 @@ export default defineContentConfig({
   collections: {
     // ── Albums: the core unit. An album is a set of images, one of which is the
     //    cover (referenced by index). Albums feed BOTH the Featured Work wall
-    //    (via their cover) and the Stories feed (as a dated post). Markdown so
+    //    (via their cover) and the Stories feed (as a dated item). Markdown so
     //    each album can carry a description body and resolve to /albums/<slug>.
     albums: defineCollection({
       type: 'page',
@@ -28,7 +28,7 @@ export default defineContentConfig({
         // Display style chosen by the admin (set-and-forget). See album style components.
         style: z.enum(['essay', 'sticky', 'contact', 'darkroom']).default('essay'),
         // Which index section(s) list this album. Default Gallery; admin-editable.
-        placement: z.enum(['blog', 'gallery', 'both']).default('gallery'),
+        placement: z.enum(['gallery', 'both']).default('gallery'),
         coverIndex: z.number().default(0), // which image in `images` is the cover
         featured: z.boolean().default(false), // pin into the featured pool
         images: z
@@ -39,22 +39,6 @@ export default defineContentConfig({
             })
           )
           .min(1)
-      })
-    }),
-
-    // ── Blog posts: text-led editorial. Appear in the Stories feed alongside
-    //    albums, sorted by date. Markdown bodies power a future /blog/<slug>.
-    posts: defineCollection({
-      type: 'page',
-      source: 'posts/*.md',
-      schema: z.object({
-        title: z.string(),
-        tag: z.string(),
-        date: z.string(),
-        published: z.string(),
-        visibility: z.enum(['draft', 'link-only', 'public']).default('public'),
-        image: z.string(),
-        excerpt: z.string()
       })
     }),
 

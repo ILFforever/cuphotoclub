@@ -17,7 +17,6 @@ async function logout() {
       <nav class="admin__nav">
         <NuxtLink :to="localePath('/admin')">{{ t('admin.dashboard') }}</NuxtLink>
         <NuxtLink :to="localePath('/admin/albums')">{{ t('admin.albums') }}</NuxtLink>
-        <NuxtLink :to="localePath('/admin/posts')">{{ t('admin.posts') }}</NuxtLink>
         <NuxtLink v-if="canManage" :to="localePath('/admin/users')">{{ t('admin.iamTitle') }}</NuxtLink>
         <NuxtLink :to="localePath('/admin/account')">{{ t('admin.account') }}</NuxtLink>
         <NuxtLink :to="localePath('/')" target="_blank">{{ t('admin.viewSite') }}</NuxtLink>
