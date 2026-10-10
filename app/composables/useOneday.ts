@@ -6,13 +6,16 @@ import { ONEDAY_DAYS, ONEDAY_TRIP_ROUTE, bangkokNow, fromMinutes, stationFor, to
 const POLL_MS = 30_000
 const CLOCK_MS = 15_000
 
-// The live AP, refreshed every 30 s and whenever the tab comes back into view.
+// The live AP, refreshed on mount, every 30 s and whenever the tab comes back
+// into view. The mount refresh matters: the pages are edge-cached (swr in
+// nuxt.config.ts), so the AP baked into the HTML can be a little old.
 export function useOnedayAp() {
   const res = useFetch<OnedayAp>('/api/events/oneday-2026/ap', { key: 'oneday-ap' })
   if (import.meta.client) {
     let timer: ReturnType<typeof setInterval> | undefined
     const onVisible = () => { if (document.visibilityState === 'visible') res.refresh() }
     onMounted(() => {
+      res.refresh()
       timer = setInterval(() => res.refresh(), POLL_MS)
       document.addEventListener('visibilitychange', onVisible)
     })

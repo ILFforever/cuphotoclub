@@ -92,7 +92,16 @@ export default defineNuxtConfig({
     '/albums/**': { swr: 120 },
     '/activities': { swr: 120 },
     '/activities/**': { swr: 120 },
-    '/events': { swr: 120 }
+    '/events': { swr: 120 },
+    // One Day Trip 2026 (temporary). Every participant opens these from the
+    // LINE group at once, so uncached SSR tripped Error 1102 on event day.
+    // Short TTL: the cached HTML's AP is only a first paint — useOnedayAp
+    // refetches on mount and every 30 s. No session or cookie is read here.
+    // Staff pages stay uncached: few visitors, and they show sync status.
+    '/events/oneday-2026': { swr: 30 },
+    '/events/oneday-2026/live': { swr: 30 },
+    '/th/events/oneday-2026': { swr: 30 },
+    '/th/events/oneday-2026/live': { swr: 30 }
   },
 
   // Private (server-only) config.
