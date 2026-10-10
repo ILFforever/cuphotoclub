@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'ยังไม่ประกาศผล' })
   }
 
-  const results = await computeResults(competition)
+  const [results, questions] = await Promise.all([computeResults(competition), listQuestions(competition.id)])
   setHeader(event, 'Cache-Control', 'private, no-store')
   return {
     competition: {
@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
       scoring: competition.scoring
     },
     preview: competition.status !== 'results',
+    // Each question has its own winners; results carry questionId and are
+    // already grouped in this order.
+    questions: questions.map(question => ({ id: question.id, title: question.title })),
     results: results.map(({ participantId: _participantId, ...row }) => ({
       ...row,
       imageUrl: `/api/compete/${competition.id}/entries/${row.id}/image`

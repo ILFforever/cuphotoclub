@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: schema.competitionEntries.id,
       title: schema.competitionEntries.title,
+      questionId: schema.competitionEntries.questionId,
       participantId: schema.competitionEntries.participantId
     })
     .from(schema.competitionEntries)
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
     entries: voterOrder(rows, participant.id).map(row => ({
       id: row.id,
       title: row.title,
+      questionId: row.questionId,
       mine: row.participantId === participant.id,
       imageUrl: `/api/compete/${competition.id}/entries/${row.id}/image`
     }))

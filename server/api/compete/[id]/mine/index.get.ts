@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: schema.competitionEntries.id,
       title: schema.competitionEntries.title,
+      questionId: schema.competitionEntries.questionId,
       createdAt: schema.competitionEntries.createdAt
     })
     .from(schema.competitionEntries)
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
     entries: rows.map(row => ({
       id: row.id,
       title: row.title,
+      questionId: row.questionId,
       imageUrl: `/api/compete/${competition.id}/entries/${row.id}/image`
     }))
   }

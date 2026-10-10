@@ -25,11 +25,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'กรรมการส่งภาพเข้าประกวดไม่ได้' })
   }
 
+  const question = await requireQuestion(competition, getRouterParam(event, 'questionId') || '')
+
   const result = await readValidatedBody(event, bodySchema.safeParse)
   if (!result.success) throw createError({ statusCode: 400, message: 'ข้อมูลไฟล์ไม่ถูกต้อง' })
 
   // Friendly early stop; complete.post re-checks, because rows only exist there.
-  const remaining = await remainingEntries(competition, participant)
+  // The limit is this question's only.
+  const remaining = await remainingEntries(question, participant)
   if (remaining <= 0) {
     throw createError({ statusCode: 409, message: 'คุณส่งภาพครบตามจำนวนที่กำหนดแล้ว' })
   }
@@ -41,7 +44,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const maxBytes = competitionMaxBytes(competition)
-  const prefix = sanitizeUploadPrefix(competitionPrefix(competition.id, participant.id))
+  const prefix = sanitizeUploadPrefix(competitionPrefix(competition.id, participant.id, question.id))
   const items = result.data.files.map((file) => {
     const ext = sanitizeUploadExt(file.ext || file.name.split('.').pop() || 'jpg')
     const hash = sanitizeUploadHash(file.hash)
@@ -83,6 +86,7 @@ export default defineEventHandler(async (event) => {
     console.error('competition upload session save failed', {
       sessionId: session.id,
       competitionId: competition.id,
+      questionId: question.id,
       cause: error instanceof Error ? error.message : String(error)
     })
     throw createError({ statusCode: 503, message: 'เริ่มการอัปโหลดไม่สำเร็จ กรุณาลองใหม่' })

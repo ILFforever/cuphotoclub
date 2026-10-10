@@ -6,7 +6,8 @@ export default defineEventHandler(async (event) => {
   // the object up rather than strand it.
   const competition = await requirePublicCompetition(getRouterParam(event, 'id') || '')
   const participant = await requireParticipant(event, competition)
-  const { session, item } = await requireCompetitionUploadItem(event, competition, participant)
+  const question = await requireQuestion(competition, getRouterParam(event, 'questionId') || '')
+  const { session, item } = await requireCompetitionUploadItem(event, competition, question, participant)
 
   const fail = async (status: number, message: string, error: string, removeObject = true) => {
     if (removeObject && !(await participantOwnsKey(participant.id, item.key))) {
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const alreadyMine = await participantOwnsKey(participant.id, item.key)
-  if (!alreadyMine && (await remainingEntries(competition, participant)) <= 0) {
+  if (!alreadyMine && (await remainingEntries(question, participant)) <= 0) {
     return fail(409, 'คุณส่งภาพครบตามจำนวนที่กำหนดแล้ว', 'Entry limit reached.')
   }
 
@@ -49,6 +50,7 @@ export default defineEventHandler(async (event) => {
       id: crypto.randomUUID(),
       competitionId: competition.id,
       participantId: participant.id,
+      questionId: question.id,
       r2Key: item.key,
       hash: item.hash,
       size: uploaded.size || item.size,
