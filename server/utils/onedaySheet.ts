@@ -259,6 +259,9 @@ async function runSync(): Promise<Stored> {
   const prev = await readStored()
   const id = sheetId()
   const now = new Date().toISOString()
+  // Claim this minute before fetching, so other isolates that read the row
+  // while the sheet is loading skip their own sync instead of piling on.
+  await writeStored({ ...prev, lastAttemptAt: now })
   if (!id) {
     const next = { ...prev, lastAttemptAt: now, error: 'not-configured', errorTab: null, warnings: [] }
     await writeStored(next)
@@ -302,9 +305,9 @@ function ageMs(iso: string | null): number {
   return iso ? Date.now() - new Date(iso).getTime() : Infinity
 }
 
-export async function getOnedayAp(): Promise<OnedayAp> {
+export async function getOnedayAp({ sync: allowSync = true } = {}): Promise<OnedayAp> {
   let stored = await readStored()
-  if (ageMs(stored.lastAttemptAt) > AUTO_SYNC_MS) {
+  if (allowSync && ageMs(stored.lastAttemptAt) > AUTO_SYNC_MS) {
     try { stored = await sync() } catch { /* serve what we have */ }
   }
   return {

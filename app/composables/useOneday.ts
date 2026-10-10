@@ -10,7 +10,11 @@ const CLOCK_MS = 15_000
 // into view. The mount refresh matters: the pages are edge-cached (swr in
 // nuxt.config.ts), so the AP baked into the HTML can be a little old.
 export function useOnedayAp() {
-  const res = useFetch<OnedayAp>('/api/events/oneday-2026/ap', { key: 'oneday-ap' })
+  // The server render reads the stored copy only (see the ap route).
+  const res = useFetch<OnedayAp>('/api/events/oneday-2026/ap', {
+    key: 'oneday-ap',
+    query: import.meta.server ? { ssr: '1' } : undefined
+  })
   if (import.meta.client) {
     let timer: ReturnType<typeof setInterval> | undefined
     const onVisible = () => { if (document.visibilityState === 'visible') res.refresh() }
