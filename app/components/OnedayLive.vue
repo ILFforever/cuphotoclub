@@ -305,6 +305,7 @@ const staffLine = (i: { owner: string, kit: string }) =>
 
       <footer class="foot">
         <p v-if="updatedAt">{{ t('oneday.live.updated', { time: updatedAt }) }}</p>
+        <NuxtLink :to="localePath('/events/oneday-2026/contacts')" class="foot__link">{{ t('oneday.contacts.pageTitle') }}</NuxtLink>
         <NuxtLink :to="localePath('/events/oneday-2026')" class="foot__link">{{ t('oneday.live.info') }}</NuxtLink>
       </footer>
     </main>

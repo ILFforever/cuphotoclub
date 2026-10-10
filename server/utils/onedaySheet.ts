@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 import type {
-  Bi, OnedayAp, OnedayControl, OnedayDay, OnedayItem, OnedayKind, OnedayLevel, OnedaySyncStatus, OnedaySyncWarning
+  Bi, OnedayAp, OnedayContacts, OnedayControl, OnedayDay, OnedayItem, OnedayKind, OnedayLevel, OnedaySyncStatus, OnedaySyncWarning
 } from '~~/shared/oneday2026'
 import {
-  ONEDAY_DEFAULT_CONTROL, ONEDAY_FALLBACK_ITEMS, ONEDAY_KINDS, ONEDAY_TABS, toMinutes
+  ONEDAY_DEFAULT_CONTROL, ONEDAY_FALLBACK_ITEMS, ONEDAY_KINDS, ONEDAY_STAFF_COLUMNS, ONEDAY_STAFF_NAMES, ONEDAY_TABS,
+  toMinutes
 } from '~~/shared/oneday2026'
 
 // Live AP for Basic Control & One Day Trip 2026, read from the planning sheet.
@@ -13,8 +14,11 @@ import {
 //   • the sheet ID only ever comes from the server-only `onedaySheetId` runtime
 //     config (NUXT_ONEDAY_SHEET_ID). It is never sent to the browser, never put
 //     in an error message, and must never be committed (the repo is public).
-//   • only the two tabs in ONEDAY_TABS are requested, and only whitelisted
+//   • only the tabs in ONEDAY_TABS are requested, and only whitelisted
 //     columns are copied out. Nothing else from the workbook leaves this file.
+//   • from `จัดกลุ่ม` only the leader-name and leader-phone columns are read
+//     (never the participant phone or medical columns), and a number is kept
+//     only for a nickname already in ONEDAY_STAFF_NAMES.
 //
 // Google's gviz endpoint silently returns the FIRST tab when the named tab
 // doesn't exist, so every fetch checks the header row before trusting it.
@@ -31,6 +35,8 @@ const FETCH_TIMEOUT_MS = 8_000
 interface Stored {
   items: OnedayItem[] | null
   control: OnedayControl | null
+  // Staff phone numbers by nickname, from the จัดกลุ่ม tab.
+  phones: Record<string, string> | null
   syncedAt: string | null
   lastAttemptAt: string | null
   error: string | null
@@ -39,7 +45,7 @@ interface Stored {
 }
 
 const EMPTY: Stored = {
-  items: null, control: null, syncedAt: null, lastAttemptAt: null, error: null, errorTab: null, warnings: []
+  items: null, control: null, phones: null, syncedAt: null, lastAttemptAt: null, error: null, errorTab: null, warnings: []
 }
 
 class SheetError extends Error {
@@ -205,6 +211,45 @@ export function parseControlRows(rows: string[][]) {
   return { control, warnings }
 }
 
+// Sheets drops the leading 0 when a phone number is typed into a number cell
+// ("0812345678" → "812345678"), so a 9-digit mobile gets it back.
+export function parsePhone(raw: string): string | null {
+  const trimmed = raw.trim()
+  const digits = trimmed.replace(/\D/g, '')
+  if (trimmed.startsWith('+')) return digits.length >= 10 && digits.length <= 13 ? `+${digits}` : null
+  if (digits.length === 9 && /^[689]/.test(digits)) return `0${digits}`
+  return /^0\d{8,9}$/.test(digits) ? digits : null
+}
+
+// The `จัดกลุ่ม` tab: group leaders in `พี่กลุ่ม`, their phones in
+// `เบอร์พี่กลุ่ม`; participant rows leave both empty and are skipped.
+export function parseStaffRows(rows: string[][]) {
+  const [nameCol, phoneCol] = ONEDAY_STAFF_COLUMNS
+  const [header = [], ...body] = rows
+  const col = headerIndex(header)
+  for (const required of ONEDAY_STAFF_COLUMNS) {
+    if (!col.has(required)) throw new SheetError('tab-missing', ONEDAY_TABS.staff)
+  }
+  const known = new Set(ONEDAY_STAFF_NAMES)
+  const phones: Record<string, string> = {}
+  const warnings: OnedaySyncWarning[] = []
+  body.forEach((r, i) => {
+    const rowNo = i + 2
+    const warn = (code: string, value = '') => warnings.push({ tab: ONEDAY_TABS.staff, row: rowNo, code, value })
+    const name = (r[col.get(nameCol)!] ?? '').trim()
+    const phoneRaw = (r[col.get(phoneCol)!] ?? '').trim()
+    if (!name && !phoneRaw) return
+    if (!known.has(name)) return warn('staffUnknown', name)
+    if (!phoneRaw) return
+    const phone = parsePhone(phoneRaw)
+    if (!phone) return warn('staffPhone', phoneRaw)
+    phones[name] = phone
+  })
+  const missing = ONEDAY_STAFF_NAMES.filter(n => !phones[n])
+  if (missing.length) warnings.push({ tab: ONEDAY_TABS.staff, row: 0, code: 'staffNoPhone', value: missing.join(', ') })
+  return { phones, warnings }
+}
+
 async function fetchTab(sheetId: string, tab: string): Promise<string[][]> {
   const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`
   let res: Response
@@ -243,6 +288,7 @@ function statusOf(s: Stored, configured: boolean): OnedaySyncStatus {
     errorTab: s.errorTab,
     warnings: s.warnings,
     itemCount: s.items?.length ?? 0,
+    staffPhoneCount: Object.keys(s.phones ?? {}).length,
     syncedAt: s.syncedAt,
     lastAttemptAt: s.lastAttemptAt
   }
@@ -268,9 +314,20 @@ async function runSync(): Promise<Stored> {
     return next
   }
   try {
-    const [apRows, controlRows] = await Promise.all([
+    // The staff tab is optional: if it fails, the schedule still syncs and
+    // the contacts page keeps the last good numbers.
+    const [apRows, controlRows, staff] = await Promise.all([
       fetchTab(id, ONEDAY_TABS.ap),
-      fetchTab(id, ONEDAY_TABS.control)
+      fetchTab(id, ONEDAY_TABS.control),
+      fetchTab(id, ONEDAY_TABS.staff).then(parseStaffRows).catch((err: unknown) => ({
+        phones: null,
+        warnings: [{
+          tab: ONEDAY_TABS.staff,
+          row: 0,
+          code: 'staffTab',
+          value: err instanceof SheetError ? err.code : 'unreachable'
+        }]
+      }))
     ])
     const ap = parseApRows(apRows)
     const ctl = parseControlRows(controlRows)
@@ -278,11 +335,12 @@ async function runSync(): Promise<Stored> {
     const next: Stored = {
       items: ap.items,
       control: ctl.control,
+      phones: staff.phones ?? prev.phones,
       syncedAt: now,
       lastAttemptAt: now,
       error: null,
       errorTab: null,
-      warnings: [...ap.warnings, ...ctl.warnings]
+      warnings: [...ap.warnings, ...ctl.warnings, ...staff.warnings]
     }
     await writeStored(next)
     return next
@@ -314,6 +372,19 @@ export async function getOnedayAp({ sync: allowSync = true } = {}): Promise<Oned
     items: stored.items ?? ONEDAY_FALLBACK_ITEMS,
     control: stored.control ?? ONEDAY_DEFAULT_CONTROL,
     source: stored.items ? 'sheet' : 'bundled',
+    syncedAt: stored.syncedAt
+  }
+}
+
+// Same re-sync rule as getOnedayAp; one sync refreshes both.
+export async function getOnedayContacts({ sync: allowSync = true } = {}): Promise<OnedayContacts> {
+  let stored = await readStored()
+  if (allowSync && ageMs(stored.lastAttemptAt) > AUTO_SYNC_MS) {
+    try { stored = await sync() } catch { /* serve what we have */ }
+  }
+  return {
+    phones: stored.phones ?? {},
+    source: stored.phones ? 'sheet' : 'none',
     syncedAt: stored.syncedAt
   }
 }

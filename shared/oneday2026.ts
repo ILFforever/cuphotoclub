@@ -8,6 +8,10 @@
 //   • ONEDAY_FALLBACK_ITEMS — the AP as of 22 Sep, served when the sheet has
 //     never synced or can't be read, so the live page is never empty.
 //
+// Staff phone numbers for the contacts page come from the planning sheet's
+// `จัดกลุ่ม` tab (two columns only). They never go into this file: the repo is
+// public.
+//
 // To take the event down: delete this file, server/utils/onedaySheet.ts,
 // server/api/events/oneday-2026/, app/pages/events/oneday-2026/,
 // app/composables/useOneday.ts, the `oneday` i18n keys, the `onedaySheetId`
@@ -76,12 +80,26 @@ export interface OnedaySyncStatus {
   errorTab: string | null
   warnings: OnedaySyncWarning[]
   itemCount: number
+  staffPhoneCount: number
   syncedAt: string | null
   lastAttemptAt: string | null
   throttled?: boolean
 }
 
-export const ONEDAY_TABS = { ap: 'Live AP', control: 'Live Control' } as const
+export const ONEDAY_TABS = { ap: 'Live AP', control: 'Live Control', staff: 'จัดกลุ่ม' } as const
+
+// The only two columns read from the `จัดกลุ่ม` tab: group leader nickname and
+// their phone. That tab also holds participants' phones and medical notes, in
+// other columns — those are never read. The tab is only trusted when both
+// headers are present (gviz answers a missing tab with the FIRST tab).
+export const ONEDAY_STAFF_COLUMNS = ['พี่กลุ่ม', 'เบอร์พี่กลุ่ม'] as const
+
+// Staff phone numbers by nickname, served to the contacts page.
+export interface OnedayContacts {
+  phones: Record<string, string>
+  source: 'sheet' | 'none'
+  syncedAt: string | null
+}
 
 // Column order of the `Live AP` tab. The parser matches by header name, so
 // columns can be reordered in the sheet; these are the names it looks for.
@@ -125,26 +143,37 @@ export function stationFor(group: number, round: number): OnedayStation | null {
   return n ? ONEDAY_STATIONS[n - 1] ?? null : null
 }
 
-// Staff directory for the staff view — nicknames only. Contact numbers stay
-// in the private planning sheet and never come into the site.
+// Staff directory — nicknames only, spelled as in the sheet's `จัดกลุ่ม` tab,
+// whose phone numbers are matched to these names at runtime.
 export const ONEDAY_GROUP_LEADERS: string[][] = [
   ['ไม้', 'แพรรี่', 'ปอนด์', 'ปิง', 'กันต์'],
   ['แฮมมี่', 'นิก', 'ภัทร', 'วีร์', 'ไนท์'],
-  ['น็อป', 'อัย', 'คริส', 'เอิง', 'โอ'],
-  ['เควิ่น', 'เท็น', 'บูม', 'แพง', 'แฮรี่'],
-  ['ตง', 'นุ่น', 'ฟินิกส์', 'ภู']
+  ['น้อบ', 'อัย', 'คริส', 'เอิง', 'โอ'],
+  ['เควิน', 'บูม', 'เท็น', 'แพง', 'แฮรี่'],
+  ['ตง', 'ฟินิกส์', 'นุ่น', 'ภู', 'โชกุน']
 ]
 
 export const ONEDAY_STAFF_ROLES: { role: Bi, names: string }[] = [
   { role: { th: 'พยาบาล', en: 'First aid' }, names: 'ปิง, โชกุน, อัย, โอ' },
   { role: { th: 'ประธาน / รองประธาน', en: 'President / vice president' }, names: 'ไม้, ตง' },
-  { role: { th: 'ทะเบียน', en: 'Registration' }, names: 'เอิง, เควิ่น, ภัทร' },
+  { role: { th: 'ทะเบียน', en: 'Registration' }, names: 'เอิง, เควิน, ภัทร' },
   { role: { th: 'สวัสดิการ (อาหาร น้ำ)', en: 'Welfare (food, water)' }, names: 'บูม, วีร์, เท็น' },
   { role: { th: 'สถานที่', en: 'Venue' }, names: 'ปอนด์, กันต์, คริส' },
-  { role: { th: 'MC', en: 'MC' }, names: 'ภู, ฟีนิกซ์' },
+  { role: { th: 'MC', en: 'MC' }, names: 'ภู, ฟินิกส์' },
   { role: { th: 'Lecturer', en: 'Lecturers' }, names: 'ไม้, ภู, สมาร์ท' },
   { role: { th: 'PR', en: 'PR' }, names: 'นุ่น, แพง, แฮรี่' }
 ]
+
+export function splitNames(names: string): string[] {
+  return names.split(',').map(n => n.trim()).filter(Boolean)
+}
+
+// Every staff nickname, in group order, then anyone who is only in a role.
+// Phone numbers from the sheet are only kept for these names.
+export const ONEDAY_STAFF_NAMES: string[] = [...new Set([
+  ...ONEDAY_GROUP_LEADERS.flat(),
+  ...ONEDAY_STAFF_ROLES.flatMap(r => splitNames(r.names))
+])]
 
 // Sunday's bus route, in order, as Google Maps search terms.
 export const ONEDAY_TRIP_ROUTE = [

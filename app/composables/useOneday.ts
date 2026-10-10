@@ -1,4 +1,4 @@
-import type { OnedayAp, OnedayDay, OnedayItem, OnedayStation } from '~~/shared/oneday2026'
+import type { OnedayAp, OnedayContacts, OnedayDay, OnedayItem, OnedayStation } from '~~/shared/oneday2026'
 import { ONEDAY_DAYS, ONEDAY_TRIP_ROUTE, bangkokNow, fromMinutes, stationFor, toMinutes } from '~~/shared/oneday2026'
 
 // Shared by the temporary /events/oneday-2026 pages.
@@ -29,6 +29,32 @@ export function useOnedayAp() {
     })
   }
   return res
+}
+
+// Staff phone numbers for the contacts page. Refreshed on mount (the page is
+// edge-cached) and when the tab comes back into view; numbers rarely change,
+// so no polling.
+export function useOnedayContacts() {
+  const res = useFetch<OnedayContacts>('/api/events/oneday-2026/contacts', {
+    key: 'oneday-contacts',
+    query: import.meta.server ? { ssr: '1' } : undefined
+  })
+  if (import.meta.client) {
+    const onVisible = () => { if (document.visibilityState === 'visible') res.refresh() }
+    onMounted(() => {
+      res.refresh()
+      document.addEventListener('visibilitychange', onVisible)
+    })
+    onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible))
+  }
+  return res
+}
+
+// Thai numbers as people write them: 081-234-5678, 02-123-4567.
+export function formatOnedayPhone(phone: string): string {
+  if (/^0[689]\d{8}$/.test(phone)) return `${phone.slice(0, 3)}-${phone.slice(3, 6)}-${phone.slice(6)}`
+  if (/^0\d{8}$/.test(phone)) return `${phone.slice(0, 2)}-${phone.slice(2, 5)}-${phone.slice(5)}`
+  return phone
 }
 
 // Dev only: `?at=2026-10-11T09:45` starts the clock at that Bangkok time, so

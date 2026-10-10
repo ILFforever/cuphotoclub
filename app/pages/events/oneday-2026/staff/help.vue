@@ -5,7 +5,7 @@
 // sheet's edit access decides who can change the live page. The sheet link is
 // deliberately not shown (the workbook also holds participant data).
 import type { OnedaySyncStatus } from '~~/shared/oneday2026'
-import { ONEDAY_KINDS, bangkokNow, fromMinutes } from '~~/shared/oneday2026'
+import { ONEDAY_KINDS, ONEDAY_STAFF_COLUMNS, bangkokNow, fromMinutes } from '~~/shared/oneday2026'
 
 definePageMeta({ layout: 'contribute' })
 
@@ -166,6 +166,18 @@ const AP_COLUMNS = ['day', 'start', 'type', 'round', 'staff_only', 'text', 'warn
           <div v-for="k in ONEDAY_KINDS" :key="k" class="values__row">
             <dt><code>{{ k }}</code></dt>
             <dd>{{ t(`oneday.control.kind.${k}`) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Staff phones (จัดกลุ่ม tab) -->
+      <section class="block">
+        <h2 class="block__h">{{ t('oneday.control.staffTitle') }}</h2>
+        <p>{{ t('oneday.control.staffLead') }}</p>
+        <dl class="values values--ap">
+          <div v-for="(c, i) in ONEDAY_STAFF_COLUMNS" :key="c" class="values__row">
+            <dt><code>{{ c }}</code></dt>
+            <dd>{{ t(i === 0 ? 'oneday.control.staffColName' : 'oneday.control.staffColPhone') }}</dd>
           </div>
         </dl>
       </section>

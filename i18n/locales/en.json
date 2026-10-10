@@ -1478,6 +1478,7 @@
       "lastAttempt": "Last attempt",
       "never": "Never",
       "rows": "Schedule rows",
+      "staffPhones": "Staff phone numbers",
       "ok": "Synced. The live page will show it within 30 seconds.",
       "throttled": "Synced less than 10 seconds ago. Try again in a moment.",
       "skipped": "Rows skipped",
@@ -1503,7 +1504,11 @@
         "title": "title_th is empty.",
         "delay": "delay_minutes \"{value}\" should be a number of minutes. Ignored.",
         "delayFrom": "delay_from \"{value}\" is not a time. Use HH:MM. Ignored.",
-        "level": "announcement_level \"{value}\" should be info, warn or crit. Using info."
+        "level": "announcement_level \"{value}\" should be info, warn or crit. Using info.",
+          "staffUnknown": "\"{value}\" isn't on the staff list, so the number is ignored. Use the nickname exactly as it appears on the staff view.",
+          "staffPhone": "\"{value}\" in เบอร์พี่กลุ่ม doesn't look like a phone number. Ignored.",
+          "staffNoPhone": "No phone number yet for: {value}.",
+          "staffTab": "Couldn't read staff phone numbers from the จัดกลุ่ม tab. Check the tab name, and that row 1 still has the พี่กลุ่ม and เบอร์พี่กลุ่ม headers. The schedule still synced."
       }
     },
     "welcome": {
@@ -1527,6 +1532,16 @@
       "crit": "Urgent",
       "ok": "Got it",
       "dontShow": "Don't show this again"
+    },
+    "contacts": {
+        "pageTitle": "Staff contacts",
+        "lead": "If you need help, contact your group leader first. For an injury or an emergency, contact first aid. Tap a number to call.",
+        "firstAid": "First aid",
+        "firstAidLead": "If you are injured or feeling unwell, please contact one of the event's first aiders.",
+        "noPhone": "No number yet",
+        "notReady": "Phone numbers are not available yet. Please check again shortly, or ask any staff member.",
+        "privacy": "These numbers are for contact during this event only. Please do not share them.",
+        "call": "Call {name}, {phone}"
     },
     "staff": {
       "synced": "Sheet synced at {time}",
@@ -1608,6 +1623,10 @@
           "result": "No notice, no popup, original times."
         }
       },
+        "staffTitle": "Staff phone numbers",
+        "staffLead": "Group leaders' phone numbers are read from two columns of the จัดกลุ่ม tab and shown on the public contacts page. No other column of that tab is read. A name not on the staff list is ignored.",
+        "staffColName": "Group leader nickname, spelled as on the staff view.",
+        "staffColPhone": "Their phone number, like 081-234-5678.",
       "apTitle": "Live AP columns",
       "apLead": "One row per schedule item. Extra columns you add for yourselves are ignored, and so are other tabs.",
       "ap": {

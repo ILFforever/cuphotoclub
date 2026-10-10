@@ -129,6 +129,7 @@ const live = computed(() => {
             <span v-if="live" class="live-card__now"><span class="num">{{ live.shownStart }}–{{ live.shownEnd }}</span> · {{ live.text.title }}</span>
             <span class="live-card__cta">{{ t('oneday.info.openLive') }}</span>
         </NuxtLink>
+        <NuxtLink :to="localePath('/events/oneday-2026/contacts')" class="odh__contacts">{{ t('oneday.contacts.pageTitle') }}</NuxtLink>
       </div>
 
       <div class="odh__tabs" role="tablist" :aria-label="t('oneday.live.dayLabel')" @keydown="onTabKey">
@@ -347,6 +348,17 @@ const live = computed(() => {
 .live-card__dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse 1.6s infinite; }
 @keyframes pulse { 50% { opacity: 0.25; } }
 .live-card__now { font-size: 0.95rem; font-weight: 500; }
+.odh__contacts {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: -1rem;
+  color: #F5F4F0;
+  font-size: 0.82rem;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.25em;
+}
+.odh__contacts:hover { color: var(--accent); }
+.odh__contacts:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .live-card__cta { font-size: 0.8rem; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, 0.6); text-underline-offset: 0.25em; }
 
 /* ── Body ── */
@@ -519,6 +531,7 @@ const live = computed(() => {
 @media (max-width: 640px) {
   .body { padding: 2.5rem 1rem 4rem; gap: 2.6rem; }
   .odh__inner { padding: 6rem 1rem 1.6rem; grid-template-columns: minmax(0, 1fr); }
+  .odh__contacts { grid-column: 1; margin-top: -1.2rem; }
   .odh__photo { object-position: 70% 30%; }
   .odh::after {
     background: linear-gradient(to bottom, rgba(12, 12, 10, 0.55) 0%, rgba(12, 12, 10, 0.72) 35%, rgba(12, 12, 10, 0.92) 70%, var(--hero-bg) 100%);

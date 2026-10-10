@@ -4,7 +4,7 @@
 // refuses to fetch more than once every 10 seconds. Who can change the
 // schedule is decided by who can edit the sheet.
 import type { OnedaySyncStatus } from '~~/shared/oneday2026'
-import { bangkokNow, fromMinutes } from '~~/shared/oneday2026'
+import { ONEDAY_STAFF_NAMES, bangkokNow, fromMinutes } from '~~/shared/oneday2026'
 
 definePageMeta({ layout: 'contribute' })
 
@@ -77,6 +77,10 @@ async function syncNow() {
           <dt>{{ t('oneday.sync.rows') }}</dt>
           <dd class="num">{{ status.itemCount }}</dd>
         </div>
+        <div class="facts__row">
+          <dt>{{ t('oneday.sync.staffPhones') }}</dt>
+          <dd class="num">{{ status.staffPhoneCount ?? 0 }} / {{ ONEDAY_STAFF_NAMES.length }}</dd>
+        </div>
       </dl>
 
       <section v-if="status?.warnings.length" class="warnings">
@@ -93,6 +97,7 @@ async function syncNow() {
         <NuxtLink :to="localePath('/events/oneday-2026/staff/help')">{{ t('oneday.staff.openHelp') }}</NuxtLink>
         <NuxtLink :to="localePath('/events/oneday-2026/staff')">{{ t('oneday.live.staffView') }}</NuxtLink>
         <NuxtLink :to="localePath('/events/oneday-2026/live')">{{ t('oneday.sync.openLive') }}</NuxtLink>
+        <NuxtLink :to="localePath('/events/oneday-2026/contacts')">{{ t('oneday.contacts.pageTitle') }}</NuxtLink>
       </div>
     </div>
   </div>

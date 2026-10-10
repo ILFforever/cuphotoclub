@@ -98,10 +98,14 @@ export default defineNuxtConfig({
     // Short TTL: the cached HTML's AP is only a first paint — useOnedayAp
     // refetches on mount and every 30 s. No session or cookie is read here.
     // Staff pages stay uncached: few visitors, and they show sync status.
+    // Contacts gets a longer TTL: numbers rarely change, the page refetches
+    // them on mount, and fewer refreshes mean fewer CACHE KV writes.
     '/events/oneday-2026': { swr: 30 },
     '/events/oneday-2026/live': { swr: 30 },
+    '/events/oneday-2026/contacts': { swr: 120 },
     '/th/events/oneday-2026': { swr: 30 },
-    '/th/events/oneday-2026/live': { swr: 30 }
+    '/th/events/oneday-2026/live': { swr: 30 },
+    '/th/events/oneday-2026/contacts': { swr: 120 }
   },
 
   // Private (server-only) config.
