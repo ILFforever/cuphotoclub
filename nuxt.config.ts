@@ -101,6 +101,11 @@ export default defineNuxtConfig({
   // Private (server-only) config.
   // Session secret comes from NUXT_SESSION_PASSWORD (nuxt-auth-utils).
   runtimeConfig: {
+    // Google Sheet behind the temporary /events/oneday-2026 live AP
+    // (server/utils/onedaySheet.ts). Server-only, from NUXT_ONEDAY_SHEET_ID —
+    // the workbook also holds participant data, so the ID must never be
+    // committed or moved under `public`.
+    onedaySheetId: '',
     oauth: {
       google: { clientId: '', clientSecret: '' }
     },

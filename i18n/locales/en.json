@@ -1506,5 +1506,287 @@
     "removeEntryConfirm": "Remove this entry and all its votes?",
     "delete": "Delete competition",
     "deleteConfirm": "Delete “{title}” with its roster, entries and votes? This can't be undone."
+  },
+  "oneday": {
+    "title": "Basic Control & One Day Trip",
+    "eyebrow": "CU Photo Club · 2026",
+    "endStripLine": "Basic Control & One Day Trip 2026. Times are Bangkok time and may change on the day.",
+    "days": {
+      "bc": "Sat 10 Oct",
+      "odt": "Sun 11 Oct"
+    },
+    "live": {
+      "pageTitle": "Live schedule",
+      "eyebrow": "Live schedule",
+      "dayLabel": "Day",
+      "now": "Now",
+      "next": "Next",
+      "comingUp": "Coming up",
+      "fullDay": "Full day",
+      "minLeft": "{n} min left",
+      "inMin": "in {n} min",
+      "between": "Between activities",
+      "notStarted": "Not started yet",
+      "startsAt": "The day starts at {time}.",
+      "startsOn": "Starts {date} at {time}.",
+      "ended": "That's a wrap",
+      "endedLead": "Thanks for coming.",
+      "round": "Round {n}",
+      "rotate": "rotate by group",
+      "walkTo": "Walk to station {n} · {name}",
+      "walkNext": "Walk to the next station",
+      "hosts": "Hosts",
+      "yourGroup": "Your workshop group",
+      "groupNotSet": "Not set",
+      "pickGroup": "Pick your group to see which station you're at each round.",
+      "boardingIn": "Boarding in {n} min",
+      "boardingNow": "Boarding now",
+      "busLeaves": "Bus leaves {time}",
+      "late": "Running {n} min late. Times below include the delay.",
+      "early": "Running {n} min early. Times below include the change.",
+      "staffView": "Staff view",
+      "owner": "Owner",
+      "kit": "Kit",
+      "staffOnly": "Staff",
+      "updated": "Schedule updated {time}",
+      "info": "Event info",
+      "today": "Today",
+      "language": "Language",
+      "route": "Open route in Google Maps"
+    },
+    "info": {
+      "pageTitle": "Basic Control & One Day Trip 2026",
+      "lead": "Two days of photography for newcomers: camera basics and a workshop around campus on Saturday, then a day trip to Chonburi on Sunday.",
+      "count": "{participants} participants · {staff} staff",
+      "openLive": "Open live schedule",
+      "happeningNow": "Happening now",
+      "bcWhere": "Chulalongkorn University · 08:30–16:15",
+      "bcPoint1": "Morning lecture: camera control, phone photography, composition, and etiquette for photographing animals.",
+      "bcPoint2": "Afternoon workshop: five stations around campus, 20 minutes each.",
+      "odtWhere": "Chonburi · 06:30–20:30",
+      "odtPoint1": "Khao Kheow Open Zoo, Bangsaen Aquarium and Bangsaen Beach.",
+      "odtPoint2": "Group quests, Buddy Budder, and a photo contest with results on the ride home.",
+      "stations": "Workshop stations",
+      "stationsLead": "Saturday afternoon. 20 minutes per station, then 10 minutes to walk to the next.",
+      "group": "Group",
+      "stops": "Trip stops",
+      "map": "Map",
+      "rules": "On the day",
+      "rule1": "The bus waits 10 minutes at most for latecomers.",
+      "rule2": "At the zoo, stay inside the green and yellow zones.",
+      "rule3": "At the aquarium, be careful with continuous lights and flash.",
+      "rule4": "18:30 boarding at the Bangsaen roundabout is strict. The bus can't stay parked there.",
+      "weekday": {
+        "bc": "Saturday",
+        "odt": "Sunday"
+      },
+      "route": "Your group's route",
+      "groupN": "Group {n}",
+      "stationN": "Station {n}",
+      "tripRoute": "Sunday's route",
+      "tripRouteLead": "Chula, Khao Kheow Open Zoo, Bangsaen Aquarium, Bangsaen Beach, then back to Chula.",
+      "openRoute": "Open route in Google Maps"
+    },
+    "sync": {
+      "pageTitle": "Sync live schedule",
+      "lead": "The live page re-reads the Google Sheet by itself about once a minute. Use Sync now when an edit has to reach phones straight away.",
+      "syncNow": "Sync now",
+      "syncing": "Syncing…",
+      "lastSync": "Last successful sync",
+      "lastAttempt": "Last attempt",
+      "never": "Never",
+      "rows": "Schedule rows",
+      "ok": "Synced. The live page will show it within 30 seconds.",
+      "throttled": "Synced less than 10 seconds ago. Try again in a moment.",
+      "skipped": "Rows skipped",
+      "row": "Row {n}",
+      "tabNote": "{tab} tab",
+      "openLive": "Open live page",
+      "failed": "Sync failed. Check your connection and try again.",
+      "errors": {
+        "not-configured": "The sheet isn't connected. Set NUXT_ONEDAY_SHEET_ID on the server.",
+        "unreachable": "Couldn't reach Google Sheets. The live page keeps showing the last good copy.",
+        "not-shared": "Google refused access. Set the sheet's General access to Anyone with the link (Viewer).",
+        "tab-missing": "Couldn't find the \"{tab}\" tab, or its header row is wrong. Check the tab name and the first row.",
+        "no-rows": "The \"{tab}\" tab has no usable rows. The live page keeps showing the last good copy."
+      },
+      "warn": {
+        "day": "day \"{value}\" should be bc or odt.",
+        "start": "start \"{value}\" is not a time. Use HH:MM.",
+        "end": "end \"{value}\" is not a time. Use HH:MM.",
+        "endBeforeStart": "end is before start ({value}).",
+        "type": "type \"{value}\" is not one of: prep, reg, talk, break, brief, walk, round, board, depart, travel, shoot, end.",
+        "round": "round \"{value}\" should be a number from 1 to 5.",
+        "roundMissing": "a round row needs a round number from 1 to 5.",
+        "title": "title_th is empty.",
+        "delay": "delay_minutes \"{value}\" should be a number of minutes. Ignored.",
+        "delayFrom": "delay_from \"{value}\" is not a time. Use HH:MM. Ignored.",
+        "level": "announcement_level \"{value}\" should be info, warn or crit. Using info."
+      }
+    },
+    "welcome": {
+      "title": "Welcome to",
+      "lead": "We're so glad you're joining us. Two days of getting to know your camera, shooting with new friends, and a day out in Chonburi at the zoo, the aquarium and the beach.",
+      "prompt": "Choose your language",
+      "promptOther": "เลือกภาษาที่ต้องการ",
+      "continueTh": "ใช้ภาษาไทย",
+      "continueEn": "Continue in English",
+      "switchLater": "You can switch language at any time from the top of the page.",
+      "close": "Skip",
+      "pageNote": "This page keeps the live schedule for both days."
+    },
+    "photos": {
+      "bushbuck": "A bushbuck calf greets its mother on the grass",
+      "marmoset": "A common marmoset resting on a branch"
+    },
+    "announce": {
+      "info": "Announcement",
+      "warn": "Heads up",
+      "crit": "Urgent",
+      "ok": "Got it",
+      "dontShow": "Don't show this again"
+    },
+    "staff": {
+      "synced": "Sheet synced at {time}",
+      "builtIn": "Not synced: showing the built-in schedule",
+      "onTime": "No delay set",
+      "delayFrom": "Delay +{n} min from {time}",
+      "delayAll": "Delay +{n} min all day",
+      "openSync": "Sync page",
+      "groups": "Groups and leaders",
+      "roundNow": "Round {n}: where each group is",
+      "roundNext": "Round {n}: where each group goes next",
+      "roles": "Who does what",
+      "openHelp": "Help"
+    },
+    "control": {
+      "pageTitle": "Live control",
+      "lead": "Everything participants see on the live page comes from two tabs in the Google Sheet: Live Control for delays and announcements, and Live AP for the schedule. This page shows what's set right now and explains each setting.",
+      "now": "Right now",
+      "empty": "(empty)",
+      "preview": "How the announcement looks on the live page",
+      "howTitle": "How to change something",
+      "step1": "Open the planning Google Sheet and go to the Live Control tab (or Live AP for the schedule).",
+      "step2": "Edit the cells in row 2. Leave the header row and the tab names exactly as they are.",
+      "step3": "Press Sync now on this page. Phones pick it up within 30 seconds. If nobody presses it, the site picks up changes by itself within about a minute.",
+      "fieldsTitle": "Live Control settings",
+      "allowed": "Allowed:",
+      "example": "Example:",
+      "field": {
+        "delay_minutes": {
+          "what": "Pushes items back by this many minutes and shows a running-late notice. Only applies on the event day itself.",
+          "allowed": "a whole number of minutes. 0 means on time; a negative number means early.",
+          "example": "15"
+        },
+        "delay_from": {
+          "what": "The time the delay starts from. Items before this time keep their original times.",
+          "allowed": "a time as HH:MM, or empty to shift the whole day.",
+          "example": "12:30"
+        },
+        "announcement_th": {
+          "what": "Announcement text in Thai. It pops up on every phone and stays as a card at the top of the live page.",
+          "allowed": "any text, or empty for no announcement.",
+          "example": "ฝนตก ให้รวมตัวใต้หลังคาหน้าอควาเรียม"
+        },
+        "announcement_en": {
+          "what": "The same announcement in English, for international students. If it's empty, the Thai text is shown instead.",
+          "allowed": "any text, or empty.",
+          "example": "It's raining. Meet under the roof in front of the aquarium."
+        },
+        "announcement_level": {
+          "what": "How strongly the announcement is shown.",
+          "allowed": "info, warn or crit (lowercase). Anything else counts as info.",
+          "example": "warn"
+        }
+      },
+      "levelsTitle": "announcement_level options",
+      "levelInfo": "pink, labelled Announcement. General news.",
+      "levelWarn": "amber, labelled Heads up. A change people need to act on.",
+      "levelCrit": "red, labelled Urgent. Bus about to leave, safety, anything that can't wait.",
+      "recipesTitle": "Common situations",
+      "recipe": {
+        "late": {
+          "name": "Running 15 minutes late after the zoo",
+          "set": "delay_minutes = 15\ndelay_from = 12:30",
+          "result": "Everything from 12:30 moves back 15 minutes and the live page says you're running late."
+        },
+        "rain": {
+          "name": "Rain, change of meeting point",
+          "set": "announcement_th = (Thai text)\nannouncement_en = (English text)\nannouncement_level = warn",
+          "result": "An amber popup on every phone, then a card at the top of the live page."
+        },
+        "urgent": {
+          "name": "Bus leaving now",
+          "set": "announcement_th = (Thai text)\nannouncement_level = crit",
+          "result": "A red Urgent popup. Use it sparingly so it keeps its weight."
+        },
+        "clear": {
+          "name": "Back to normal",
+          "set": "delay_minutes = 0\ndelay_from = (empty)\nannouncement_th = (empty)\nannouncement_en = (empty)\nannouncement_level = info",
+          "result": "No notice, no popup, original times."
+        }
+      },
+      "apTitle": "Live AP columns",
+      "apLead": "One row per schedule item. Extra columns you add for yourselves are ignored, and so are other tabs.",
+      "ap": {
+        "day": {
+          "name": "day",
+          "what": "bc for Saturday (Basic Control) or odt for Sunday (One Day Trip)."
+        },
+        "start": {
+          "name": "start / end",
+          "what": "Times as HH:MM. Leave end empty for a moment in time, like the bus leaving."
+        },
+        "type": {
+          "name": "type",
+          "what": "What kind of item it is; this sets its colour and the bus-call banner. See the list below."
+        },
+        "round": {
+          "name": "round",
+          "what": "Workshop round 1–5. On a round row, each group sees its own station."
+        },
+        "staff_only": {
+          "name": "staff_only",
+          "what": "TRUE to show the row on the staff view only."
+        },
+        "text": {
+          "name": "title / detail / place _th _en",
+          "what": "The text shown on the page. If the English cell is empty, the Thai one is used."
+        },
+        "warning": {
+          "name": "warning_th / warning_en",
+          "what": "A highlighted warning on that item, like the zoo zone rule."
+        },
+        "owner": {
+          "name": "owner / kit",
+          "what": "Who runs it and what to bring. Staff view only."
+        },
+        "staff_note": {
+          "name": "staff_note",
+          "what": "A note for staff on that item, like a head count. Staff view only."
+        }
+      },
+      "typesTitle": "type values",
+      "kind": {
+        "prep": "Staff setup before participants arrive",
+        "reg": "Registration",
+        "talk": "Lecture or talk",
+        "break": "Break or meal",
+        "brief": "Briefing",
+        "walk": "Walking between places",
+        "round": "Workshop round (needs a round number)",
+        "board": "Boarding the bus; triggers the red bus-call banner",
+        "depart": "Bus leaves (a moment, no end time)",
+        "travel": "On the bus between places",
+        "shoot": "Shooting at a location",
+        "end": "End of the day"
+      },
+      "gotchasTitle": "Things that break it",
+      "gotcha1": "Renaming the tabs. They must stay exactly Live AP and Live Control.",
+      "gotcha2": "Typing notes under row 2 in Live Control. Google can blank out a column that mixes numbers and text, which silently resets delay_minutes. Use a cell note (right-click, Insert note) instead.",
+      "gotcha3": "A typo in type, day or a time. That row is skipped and listed on the sync page; the rest keeps working.",
+      "gotcha4": "Turning off link sharing on the sheet. The live page keeps showing the last good copy, and the sync page shows an error.",
+      "syncDetails": "Sync details"
+    }
   }
 }
