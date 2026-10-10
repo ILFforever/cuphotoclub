@@ -30,7 +30,8 @@ export default defineEventHandler(async (event) => {
   await db.delete(schema.competitionEntries).where(eq(schema.competitionEntries.participantId, participant.id))
   await db.delete(schema.competitionParticipants).where(eq(schema.competitionParticipants.id, participant.id))
 
-  // Bounded by maxEntriesPerPerson (≤ 50), so trashing inline is safe.
+  // Bounded by each question's maxEntriesPerPerson (≤ 50) times the number of
+  // questions — a handful in practice — so trashing inline is safe.
   for (const entry of entries) await trashIfUnreferenced(entry.r2Key, actor.name || actor.email)
 
   await recordAdminAudit(actor, {

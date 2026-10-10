@@ -1214,8 +1214,8 @@
       "closed": "Voting closed",
       "results": "Results"
     },
-    "ruleEntries": "Up to {n} photos each",
-    "ruleVotes": "{n} votes each",
+    "ruleEntries": "Up to {n} photo each | Up to {n} photos each",
+    "ruleVotes": "{n} vote each | {n} votes each",
     "ruleJudges": "Judges vote too",
     "notFoundTitle": "Competition not found",
     "notFoundLead": "This link may be wrong, or the competition isn't open yet.",

@@ -5,11 +5,11 @@
 //   not signed in → join: phone (roster), a name (open), or a judge code
 //   submissions   → upload entries (attendees), wait (judges)
 //   voting        → anonymous gallery, tap to vote
+//   closed        → gallery read-only, results coming
+//   results       → link to the results page
 //
 // A competition asks one or more questions, each with its own pool. Tabs pick
 // the question; the photo limit and the votes shown are that question's only.
-//   closed        → gallery read-only, results coming
-//   results       → link to the results page
 //
 // Uploads reuse R2ImageUploader against this competition's own session
 // routes, the same way the contribute page does. Uses the contribute layout
@@ -211,6 +211,10 @@ onMounted(() => {
 
 const uploadedKeys = ref<string[]>([])
 async function onUploaded() {
+  // The uploader takes its own key list off max-files, but remainingHere
+  // already counts these entries. Left in place they would count twice, and
+  // carry over to block uploads in the next question's tab.
+  uploadedKeys.value = []
   await refresh()
   await loadMine()
 }
@@ -394,9 +398,9 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
             <h2 v-if="questions.length > 1" class="qhead__title">{{ activeQuestion.title }}</h2>
             <p v-if="activeQuestion.description" class="qhead__desc">{{ activeQuestion.description }}</p>
             <p class="stage__rules">
-              <span v-if="status === 'submissions' && me.role === 'attendee'">{{ t('compete.ruleEntries', { n: activeQuestion.maxEntriesPerPerson }) }}</span>
-              <span v-if="comp.scoring !== 'judges' && me.role === 'attendee'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerPerson }) }}</span>
-              <span v-if="comp.scoring !== 'public' && me.role === 'judge'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerJudge }) }}</span>
+              <span v-if="status === 'submissions' && me.role === 'attendee'">{{ t('compete.ruleEntries', { n: activeQuestion.maxEntriesPerPerson }, activeQuestion.maxEntriesPerPerson) }}</span>
+              <span v-if="comp.scoring !== 'judges' && me.role === 'attendee'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerPerson }, activeQuestion.votesPerPerson) }}</span>
+              <span v-if="comp.scoring !== 'public' && me.role === 'judge'">{{ t('compete.ruleVotes', { n: activeQuestion.votesPerJudge }, activeQuestion.votesPerJudge) }}</span>
             </p>
           </div>
 

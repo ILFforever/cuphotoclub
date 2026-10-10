@@ -11,6 +11,8 @@ export default defineEventHandler(async (event) => {
   const result = await readValidatedBody(event, bodySchema.safeParse)
   if (!result.success) throw createError({ statusCode: 400, message: 'ข้อมูลไม่ถูกต้อง' })
   const input = result.data
+  // Drizzle refuses an UPDATE with nothing to set.
+  if (!Object.keys(input).length) return question
 
   const [updated] = await db
     .update(schema.competitionQuestions)

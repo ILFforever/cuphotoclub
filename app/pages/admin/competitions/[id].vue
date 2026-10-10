@@ -155,8 +155,15 @@ function draftOf(question: Question): QuestionDraft {
     votesPerJudge: question.votesPerJudge
   }
 }
-watch(() => data.value?.questions, (list) => {
-  questionDrafts.value = Object.fromEntries((list ?? []).map(question => [question.id, draftOf(question)]))
+watch(() => data.value?.questions, (list, previous) => {
+  const before = new Map((previous ?? []).map(question => [question.id, question]))
+  const sameDraft = (a: QuestionDraft, b: QuestionDraft) => JSON.stringify(a) === JSON.stringify(b)
+  questionDrafts.value = Object.fromEntries((list ?? []).map((question) => {
+    const old = before.get(question.id)
+    const kept = questionDrafts.value[question.id]
+    // Unchanged on the server → keep whatever is being typed in that row.
+    return [question.id, old && kept && sameDraft(draftOf(old), draftOf(question)) ? kept : draftOf(question)]
+  }))
 }, { immediate: true })
 
 const newQuestion = reactive<QuestionDraft>({ title: '', description: '', maxEntriesPerPerson: 3, votesPerPerson: 2, votesPerJudge: 5 })
