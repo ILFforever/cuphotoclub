@@ -7,7 +7,6 @@ export const strings = {
   nav: {
     home: 'หน้าแรก',
     galleries: 'แกลเลอรี',
-    blog: 'บทความ',
     activities: 'กิจกรรม',
     about: 'เกี่ยวกับเรา',
     contact: 'ติดต่อเรา'
@@ -16,16 +15,7 @@ export const strings = {
   home: {
     eyebrow: 'CU Photo Club',
     heroTitle: 'บันทึกทุกช่วงเวลาผ่านเลนส์',
-    heroSubtitle: 'ภาพถ่ายกิจกรรม บทความ และผลงานจากชมรมถ่ายภาพ',
+    heroSubtitle: 'ภาพถ่ายกิจกรรม และผลงานจากชมรมถ่ายภาพ',
     viewGalleries: 'ดูแกลเลอรีทั้งหมด'
   }
 } as const
-
-export const navLinks = [
-  { to: '/', label: strings.nav.home },
-  { to: '/galleries', label: strings.nav.galleries },
-  { to: '/blog', label: strings.nav.blog },
-  { to: '/activities', label: strings.nav.activities },
-  { to: '/about', label: strings.nav.about },
-  { to: '/contacts', label: strings.nav.contact }
-] as const

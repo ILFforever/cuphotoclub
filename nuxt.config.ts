@@ -92,10 +92,7 @@ export default defineNuxtConfig({
     '/albums/**': { swr: 120 },
     '/activities': { swr: 120 },
     '/activities/**': { swr: 120 },
-    '/blog': { swr: 120 },
-    '/blog/**': { swr: 120 },
-    '/posts': { swr: 120 },
-    '/posts/**': { swr: 120 }
+    '/events': { swr: 120 }
   },
 
   // Private (server-only) config.

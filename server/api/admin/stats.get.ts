@@ -7,11 +7,10 @@ import { count, inArray } from 'drizzle-orm'
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const [albums, posts, [events], [members], [collections], [competitions], imageSettings] = await Promise.all([
-    // Albums and posts go through their stores so the seed-on-first-read and the
-    // mock-data filter behave the same as on the list endpoints they link to.
+  const [albums, [events], [members], [collections], [competitions], imageSettings] = await Promise.all([
+    // Albums go through their store so the seed-on-first-read and the
+    // mock-data filter behave the same as on the list endpoint they link to.
     albumStore.count(),
-    postStore.count(),
     db.select({ c: count() }).from(schema.events),
     db.select({ c: count() }).from(schema.members),
     db.select({ c: count() }).from(schema.collectionLinks),
@@ -28,7 +27,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     albums,
-    posts,
     events: events?.c ?? 0,
     members: members?.c ?? 0,
     collections: collections?.c ?? 0,

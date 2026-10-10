@@ -4,7 +4,6 @@ definePageMeta({ layout: 'site' })
 interface SearchResult {
   query: string
   albums: { slug: string, title: string, eventDate: string | null }[]
-  posts: { slug: string, title: string, excerpt: string | null }[]
   events: { slug: string, title: string, summary: string | null, eventDate: string | null }[]
 }
 
@@ -14,14 +13,14 @@ const q = ref(String(route.query.q || ''))
 
 const { data } = await useFetch<SearchResult>('/api/search', {
   query: { q },
-  default: () => ({ query: '', albums: [], posts: [], events: [] })
+  default: () => ({ query: '', albums: [], events: [] })
 })
 
 function submit() {
   navigateTo({ path: '/search', query: q.value.trim() ? { q: q.value.trim() } : {} })
 }
 
-const total = computed(() => (data.value ? data.value.albums.length + data.value.posts.length + data.value.events.length : 0))
+const total = computed(() => (data.value ? data.value.albums.length + data.value.events.length : 0))
 
 useSeoMeta({ title: () => t('search.title'), robots: 'noindex' })
 // Keep q in sync with the URL (back/forward). useFetch already refetches
@@ -57,16 +56,6 @@ watch(() => route.query.q, () => { q.value = String(route.query.q || '') })
               <span class="font-medium text-ink">{{ a.title }}</span>
               <span class="text-sm text-ink-soft">{{ a.eventDate ? formatDate(a.eventDate) : '' }}</span>
             </NuxtLink>
-          </li>
-        </ul>
-      </section>
-
-      <section v-if="data?.posts.length">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-soft">{{ t('search.posts') }}</h2>
-        <ul class="mt-3 divide-y divide-line">
-          <li v-for="p in data.posts" :key="p.slug" class="py-3">
-            <NuxtLink :to="`/blog/${p.slug}`" class="font-medium text-ink hover:text-accent">{{ p.title }}</NuxtLink>
-            <p v-if="p.excerpt" class="mt-0.5 line-clamp-1 text-sm text-ink-soft">{{ p.excerpt }}</p>
           </li>
         </ul>
       </section>
