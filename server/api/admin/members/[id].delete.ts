@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   await db.delete(schema.members).where(eq(schema.members.id, id))
 
   // Upload keys are content-hash dedup'd, so another member (or a hero image,
-  // post cover, …) may still use this blob — only delete it when the row's
+  // event cover, …) may still use this blob — only delete it when the row's
   // removal left it unreferenced.
   if (row.photoR2Key) {
     const references = await getR2DeleteReferences([row.photoR2Key])

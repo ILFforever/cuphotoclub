@@ -166,7 +166,7 @@ function goToPage(nextPage: number) {
       <div>
         <NuxtLink to="/admin" class="back">Dashboard</NuxtLink>
         <h1>Admin Logs</h1>
-        <p class="sub">Audit trail for admin accounts and editorial post changes.</p>
+        <p class="sub">Audit trail for admin accounts and content changes.</p>
       </div>
     </div>
 

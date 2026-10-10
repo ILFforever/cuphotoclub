@@ -7,7 +7,7 @@ import { defaultSite } from '~/utils/defaultSite'
 const localeHead = useLocaleHead()
 useHead(localeHead)
 
-// Shared chrome for inner pages (albums, and later blog): reading-progress bar,
+// Shared chrome for inner pages (albums, events, and the rest): reading-progress bar,
 // the dark→light nav handoff, header parallax, and the footer — all driven by
 // the page's own markup via data-attributes:
 //   [data-chrome-header] → nav goes light once this element scrolls past

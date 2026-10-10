@@ -1,7 +1,7 @@
 import { alias } from 'drizzle-orm/sqlite-core'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 
-// Aggregated data for the home page: featured albums, latest posts, recent events.
+// Aggregated data for the home page: featured albums and recent events.
 export default defineEventHandler(async () => {
   const cover = alias(schema.photos, 'cover')
 
@@ -51,13 +51,12 @@ export default defineEventHandler(async () => {
     .orderBy(asc(schema.events.eventDate), asc(schema.events.createdAt))
     .limit(3)
 
-  const [albumRows, contentAlbumList, postList, events] = await Promise.all([
+  const [albumRows, contentAlbumList, events] = await Promise.all([
     albumRowsQuery,
     // Metadata only: the feed needs a cover and a photo count, both of which are
     // stored as columns. Reading every album's `rows` JSON for that was ~3MB of
     // D1 traffic on a page that renders a handful of cards.
     albumStore.listMeta({ visibility: ['public'] }),
-    postStore.list(),
     eventsQuery
   ])
 
@@ -92,20 +91,6 @@ export default defineEventHandler(async () => {
       source: 'content' as const
     }))
 
-  // Editorial posts are managed via the block-based editor (schema.contentPosts, via
-  // postStore) — the same "content store" pattern as contentAlbums above.
-  const posts = postList
-    .filter(p => p.visibility === 'public')
-    .sort((a, b) => b.published.localeCompare(a.published))
-    .slice(0, 3)
-    .map(p => ({
-      slug: p.id,
-      title: p.title,
-      excerpt: p.excerpt,
-      coverR2Key: p.image,
-      publishedAt: p.published
-    }))
-
   const galleryAlbums = albumRows.map(({ explicitCoverKey, firstPhotoKey, eventDate, ...a }) => ({
     ...a,
     // Relational albums store eventDate as a Date; content albums use ISO strings.
@@ -121,7 +106,6 @@ export default defineEventHandler(async () => {
 
   return {
     albums,
-    posts,
     events: landingEvents
   }
 })

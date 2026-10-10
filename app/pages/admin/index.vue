@@ -23,15 +23,6 @@ const primarySections = computed(() => [
     quickLabel: t('admin.newAlbum')
   },
   {
-    key: 'posts',
-    title: t('admin.posts'),
-    count: stats.value?.posts ?? 0,
-    meta: t('admin.editorialWriting'),
-    to: localePath('/admin/posts'),
-    newTo: localePath('/admin/posts/new'),
-    quickLabel: t('admin.newPost')
-  },
-  {
     key: 'activities',
     title: t('admin.activities'),
     count: stats.value?.events ?? 0,

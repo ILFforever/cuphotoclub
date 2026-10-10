@@ -2,7 +2,7 @@ nav:
   links:
     - { label: Home, to: '/' }
     - { label: Albums, to: '/albums' }
-    - { label: Blog, to: '/#stories' }
+    - { label: Events, to: '/events' }
     - { label: History, to: '/#history' }
     - { label: Clubroom, to: '/#about' }
     - { label: Join, to: '/contacts', join: true }
@@ -72,7 +72,7 @@ footer:
     - title: Navigate
       links:
         - { label: Albums, to: '/albums' }
-        - { label: Blog, to: '/#stories' }
+        - { label: Events, to: '/events' }
         - { label: History, to: '/#history' }
         - { label: Clubroom, to: '/#about' }
         - { label: Join, to: '/contacts' }

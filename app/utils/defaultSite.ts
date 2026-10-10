@@ -3,7 +3,7 @@ export const defaultSite = {
     links: [
       { label: 'Home', to: '/' },
       { label: 'Albums', to: '/albums' },
-      { label: 'Blog', to: '/blog' },
+      { label: 'Events', to: '/events' },
       { label: 'Activities', to: '/activities' },
       { label: 'Members', to: '/members' },
       { label: 'Contact', to: '/contacts' },
@@ -64,7 +64,7 @@ export const defaultSite = {
         title: 'Navigate',
         links: [
           { label: 'Albums', to: '/albums' },
-          { label: 'Blog', to: '/blog' },
+          { label: 'Events', to: '/events' },
           { label: 'History', to: '/#history' },
           { label: 'Clubroom', to: '/#about' },
           { label: 'Join', to: '/contacts' },

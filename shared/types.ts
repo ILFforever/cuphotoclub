@@ -34,7 +34,7 @@ export interface AlbumRow {
 }
 
 export type AlbumStyle = 'essay' | 'sticky' | 'contact' | 'darkroom' | 'chapters'
-export type Placement = 'blog' | 'gallery' | 'both'
+export type Placement = 'gallery' | 'both'
 
 export interface Album {
   id: string           // immutable key; also the R2 media folder (content-albums/<id>)
@@ -70,69 +70,6 @@ export type AlbumListItem = Omit<Album, 'rows'> & { photoCount: number }
 
 /** The subset an album picker/dropdown needs. */
 export type AlbumPickerItem = Pick<Album, 'id' | 'slug' | 'title' | 'category' | 'visibility'>
-
-// ─── Post block types ──────────────────────────────────────────────────────
-
-export type PostBlockType =
-  | 'text' | 'lead' | 'heading' | 'subheading'
-  | 'pullquote' | 'blockquote' | 'image'
-  | 'photo-full' | 'photo-pair' | 'divider'
-  | 'inset' | 'qanda'
-
-interface PostBlockBase { id: string; type: PostBlockType }
-
-export interface PostBlockText       extends PostBlockBase { type: 'text';       content: string }
-export interface PostBlockLead       extends PostBlockBase { type: 'lead';       content: string }
-export interface PostBlockHeading    extends PostBlockBase { type: 'heading';    content: string }
-export interface PostBlockSubheading extends PostBlockBase { type: 'subheading'; content: string }
-export interface PostBlockPullquote  extends PostBlockBase { type: 'pullquote';  content: string }
-export interface PostBlockBlockquote extends PostBlockBase { type: 'blockquote'; content: string; cite?: string }
-export interface PostBlockImage      extends PostBlockBase { type: 'image';      src: string; caption?: string; breakout?: boolean }
-export interface PostBlockPhotoFull  extends PostBlockBase { type: 'photo-full'; src: string; caption?: string }
-export interface PostBlockPhotoPair  extends PostBlockBase { type: 'photo-pair'; src1: string; src2: string; caption?: string }
-export interface PostBlockDivider    extends PostBlockBase { type: 'divider' }
-export interface PostBlockInset      extends PostBlockBase { type: 'inset';      content: string }
-export interface PostBlockQanda      extends PostBlockBase { type: 'qanda';      question: string; answer: string }
-
-export type PostBlock =
-  | PostBlockText | PostBlockLead | PostBlockHeading | PostBlockSubheading
-  | PostBlockPullquote | PostBlockBlockquote | PostBlockImage
-  | PostBlockPhotoFull | PostBlockPhotoPair | PostBlockDivider
-  | PostBlockInset | PostBlockQanda
-
-// ─── Post ──────────────────────────────────────────────────────────────────
-
-export type HeroStyle = 'standard' | 'dark-full' | 'split' | 'minimal-dark'
-
-export interface AdminAttribution {
-  id: number
-  email: string
-  name?: string | null
-}
-
-export interface Post {
-  id: string
-  title: string
-  tag: string
-  date: string
-  published: string
-  visibility: ContentStatus
-  image: string
-  excerpt: string
-  heroStyle?: HeroStyle
-  author?: string
-  authorBio?: string
-  authorAvatar?: string
-  createdById?: number | null
-  updatedById?: number | null
-  createdBy?: AdminAttribution | null
-  updatedBy?: AdminAttribution | null
-  blocks: PostBlock[]
-  updatedAt?: string
-}
-
-/** Fields the admin supplies when creating/updating (no id). */
-export type PostInput = Omit<Post, 'id' | 'updatedAt'>
 
 // The #auth-utils session User augmentation lives in app/types/auth.d.ts and
 // server/types/auth.d.ts — the standalone `shared` TS project cannot resolve

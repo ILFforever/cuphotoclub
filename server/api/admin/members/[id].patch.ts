@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   await db.update(schema.members).set(updates).where(eq(schema.members.id, id))
 
   // Upload keys are content-hash dedup'd, so the same blob can back several
-  // members (or a hero image, post cover, …). Only delete it once nothing
+  // members (or a hero image, event cover, …). Only delete it once nothing
   // references it anymore — checked after the update above so this row's old
   // key no longer counts.
   if (replacedPhotoKey) {

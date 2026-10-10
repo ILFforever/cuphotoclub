@@ -218,7 +218,6 @@ async function ensureAlbumSources() {
 
 const librarySources = computed(() => [
   { label: t('adminActivities.sourceActivityUploads'), prefix: activityLibraryPrefix.value },
-  { label: t('adminActivities.sourceBlogPosts'), prefix: 'content-posts' },
   ...albumSources.value
 ])
 

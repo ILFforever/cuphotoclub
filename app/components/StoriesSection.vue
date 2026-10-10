@@ -1,6 +1,5 @@
 <script setup lang="ts">
 interface FeedItem {
-  kind: 'album' | 'post'
   title: string
   tag: string
   date: string
@@ -22,7 +21,7 @@ const localePath = useLocalePath()
     <div class="wrap">
       <div class="eyebrow">{{ t('home.latest') }}</div>
       <div class="stories__layout">
-        <!-- Lead: newest item, album or post -->
+        <!-- Lead: newest album -->
         <NuxtLink v-if="lead" :to="lead.path" class="scard-lead">
           <div class="scard-lead__img">
             <AppImg :src="lead.image" :alt="lead.title" width="1200" height="900" sizes="sm:100vw lg:55vw" optimize />
@@ -31,7 +30,7 @@ const localePath = useLocalePath()
             <p class="scard-lead__tag">{{ lead.tag }}</p>
             <h3 class="scard-lead__title">{{ lead.title }}</h3>
             <p class="scard-lead__excerpt">{{ lead.excerpt }}</p>
-            <span class="scard-lead__read">{{ lead.kind === 'album' ? t('common.viewAlbum') : t('common.readEssay') }}</span>
+            <span class="scard-lead__read">{{ t('common.viewAlbum') }}</span>
           </div>
         </NuxtLink>
 
@@ -47,7 +46,7 @@ const localePath = useLocalePath()
       </div>
       <div class="stories__footer">
         <NuxtLink :to="localePath('/albums')" class="stories__view-all">{{ t('home.viewAllAlbums') }}</NuxtLink>
-        <NuxtLink :to="localePath('/blog')" class="stories__view-all">{{ t('home.viewAllPosts') }}</NuxtLink>
+        <NuxtLink :to="localePath('/events')" class="stories__view-all">{{ t('home.viewAllEvents') }}</NuxtLink>
       </div>
     </div>
   </section>

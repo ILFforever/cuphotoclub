@@ -5,7 +5,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'R2 Images' })
 
 interface ImageUsage {
-  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'post-cover' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
+  kind: 'gallery' | 'hero' | 'history' | 'clubroom' | 'event-cover' | 'event-gallery' | 'member-photo' | 'editorial-album' | 'contribution' | 'collection-cover' | 'competition-entry'
   label: string
   href?: string
   role?: string
@@ -625,7 +625,7 @@ async function bulkDelete() {
       : 'This selects every R2 image currently loaded in this inventory.')
   }
   if (referencedCount) {
-    warningItems.push(`${referencedCount} selected image${referencedCount === 1 ? ' is' : 's are'} referenced by albums, landing sections, posts, events, members, or layouts.`)
+    warningItems.push(`${referencedCount} selected image${referencedCount === 1 ? ' is' : 's are'} referenced by albums, landing sections, events, members, or layouts.`)
     warningItems.push('Trashing referenced images clears those references. Restoring brings back the file, not the references.')
   }
 
@@ -712,7 +712,6 @@ function trashReferenceLabels(item: TrashItem): string[] {
   if (!item.references) return []
   const labels: Record<string, string> = {
     galleryPhoto: 'Gallery',
-    post: 'Post cover',
     activity: 'Activity cover',
     member: 'Member photo',
     hero: 'Hero',
@@ -956,7 +955,7 @@ onBeforeUnmount(() => {
     <section class="r2__tools" aria-label="R2 image filters">
       <form class="r2__prefix" @submit.prevent="applyPrefix()">
         <label for="prefix">Prefix</label>
-        <input id="prefix" v-model="prefixInput" type="text" placeholder="photos/, hero, posts/covers">
+        <input id="prefix" v-model="prefixInput" type="text" placeholder="photos/, hero, events/covers">
         <button type="submit">Apply</button>
         <button v-if="activePrefix" type="button" @click="clearPrefix">Clear</button>
       </form>
