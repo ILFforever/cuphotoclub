@@ -1216,7 +1216,11 @@
     },
     "ruleEntries": "Up to {n} photo each | Up to {n} photos each",
     "ruleVotes": "{n} vote each | {n} votes each",
-    "ruleJudges": "Judges vote too",
+    "scoringRule": {
+      "public": "Attendees vote for the winners",
+      "judges": "Judges pick the winners",
+      "both": "Attendees and judges both vote"
+    },
     "notFoundTitle": "Competition not found",
     "notFoundLead": "This link may be wrong, or the competition isn't open yet.",
     "home": "Go to the club site",
@@ -1254,6 +1258,7 @@
     "closedNotice": "Voting has closed. Results will be announced soon.",
     "votesLeft": "{left} of {max} votes left. Tap a photo to see it full size.",
     "cannotVote": "You can look through the entries, but this competition doesn't use your votes.",
+    "cannotVoteJudges": "Judges are picking the winners. You can look through the entries while they vote.",
     "noVotesLeft": "You've used all {n} of your votes. Take one back to vote for a different photo.",
     "noEntries": "No entries yet.",
     "view": "View full size",
@@ -1322,10 +1327,14 @@
       "closed": "Closed",
       "results": "Results"
     },
+    "statusHintVoting": {
+      "public": "Uploads close. Attendees browse and vote.",
+      "judges": "Uploads close. Judges vote; attendees can browse.",
+      "both": "Uploads close. Attendees and judges vote."
+    },
     "statusHint": {
       "draft": "Hidden from everyone but admins.",
       "submissions": "Attendees sign in and upload their photos.",
-      "voting": "Uploads close. Everyone can browse and vote.",
       "closed": "Votes are frozen. Results stay hidden.",
       "results": "Results and the reveal page are public."
     },

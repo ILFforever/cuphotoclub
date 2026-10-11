@@ -411,7 +411,9 @@ function formatPhone(phone: string | null) {
             @click="setPhase(phase)"
           >
             <span class="phase__name">{{ t(`adminCompetitions.status.${phase}`) }}</span>
-            <span class="phase__hint">{{ t(`adminCompetitions.statusHint.${phase}`) }}</span>
+            <span class="phase__hint">
+              {{ phase === 'voting' ? t(`adminCompetitions.statusHintVoting.${data.competition.scoring}`) : t(`adminCompetitions.statusHint.${phase}`) }}
+            </span>
           </button>
         </div>
         <p class="stats">

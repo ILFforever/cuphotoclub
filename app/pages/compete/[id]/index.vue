@@ -296,7 +296,7 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
           <p v-if="comp.description" class="stage__lead">{{ comp.description }}</p>
           <p class="stage__rules">
             <span v-if="questions.length > 1">{{ t('compete.questionCount', { n: questions.length }) }}</span>
-            <span v-if="comp.scoring !== 'public'">{{ t('compete.ruleJudges') }}</span>
+            <span>{{ t(`compete.scoringRule.${comp.scoring}`) }}</span>
           </p>
         </div>
       </header>
@@ -453,7 +453,9 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
             <p v-else-if="canVote" class="count">
               {{ t('compete.votesLeft', { left: votesLeft, max: votesAllowedHere }) }}
             </p>
-            <p v-else class="alert alert--quiet">{{ t('compete.cannotVote') }}</p>
+            <p v-else class="alert alert--quiet">
+              {{ comp.scoring === 'judges' && me.role === 'attendee' ? t('compete.cannotVoteJudges') : t('compete.cannotVote') }}
+            </p>
 
             <p v-if="!galleryHere.length" class="alert alert--quiet">{{ t('compete.noEntries') }}</p>
             <ul v-else class="grid">
