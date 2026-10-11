@@ -75,6 +75,19 @@ export default defineNuxtConfig({
     // The home page's data on client-side navigation (the SSR'd `/` is swr
     // below). Public, no session read; runs several D1 queries per call.
     '/api/home': { cache: { maxAge: 60 } },
+    // The other public reads behind the swr pages, hit uncached on client-side
+    // navigation. None reads a session; all return published content only.
+    // events/[slug] and pages/[key] render markdown on every call. `*` is one
+    // segment, so /api/events/oneday-2026/** (live AP, staff sync) stays uncached.
+    '/api/albums': { cache: { maxAge: 60 } },
+    '/api/albums/*': { cache: { maxAge: 60 } },
+    '/api/events': { cache: { maxAge: 60 } },
+    '/api/events/*': { cache: { maxAge: 60 } },
+    '/api/members': { cache: { maxAge: 300 } },
+    '/api/pages/*': { cache: { maxAge: 300 } },
+    '/api/landing-images': { cache: { maxAge: 300 } },
+    '/api/hero-images': { cache: { maxAge: 300 } },
+    '/api/history-image': { cache: { maxAge: 300 } },
 
     // These public pages have no auth-dependent SSR (no page/component reads a
     // session), so serve them from an edge cache and revalidate in the
