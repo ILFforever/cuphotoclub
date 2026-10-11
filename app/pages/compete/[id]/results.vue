@@ -53,6 +53,12 @@ const selectedQuestionId = ref<string | null>(null)
 const activeQuestion = computed(() =>
   questions.value.find(question => question.id === selectedQuestionId.value) ?? questions.value[0] ?? null
 )
+// Same rule as the attendee page: hide a lone question only when it just
+// repeats the competition title.
+const showQuestionTitle = computed(() =>
+  questions.value.length > 1
+  || (!!activeQuestion.value && activeQuestion.value.title.trim() !== (data.value?.competition.title ?? '').trim())
+)
 const questionResults = computed(() =>
   (data.value?.results ?? []).filter(row => row.questionId === activeQuestion.value?.id)
 )
@@ -263,7 +269,7 @@ const visibleRanks = computed(() => {
           {{ question.title }}
         </button>
       </nav>
-      <h2 v-if="questions.length > 1 && activeQuestion" class="vr__question">{{ activeQuestion.title }}</h2>
+      <h2 v-if="showQuestionTitle && activeQuestion" class="vr__question">{{ activeQuestion.title }}</h2>
 
       <p v-if="!hasResults" class="vr__empty">{{ t('compete.noResults') }}</p>
 

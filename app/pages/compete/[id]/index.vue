@@ -91,6 +91,13 @@ const selectedQuestionId = ref<string | null>(null)
 const activeQuestion = computed(() =>
   questions.value.find(question => question.id === selectedQuestionId.value) ?? questions.value[0] ?? null
 )
+// A lone question is usually the default one named after the competition, so
+// its title would only repeat the page heading. Once renamed, it says what to
+// shoot and must show.
+const showQuestionTitle = computed(() =>
+  questions.value.length > 1
+  || (!!activeQuestion.value && activeQuestion.value.title.trim() !== (comp.value?.title ?? '').trim())
+)
 
 useHead(() => ({ title: comp.value?.title || t('compete.title') }))
 
@@ -395,7 +402,7 @@ const phaseLabel = computed(() => t(`compete.phase.${status.value}`))
             </button>
           </nav>
           <div v-if="activeQuestion && status !== 'results'" class="qhead">
-            <h2 v-if="questions.length > 1" class="qhead__title">{{ activeQuestion.title }}</h2>
+            <h2 v-if="showQuestionTitle" class="qhead__title">{{ activeQuestion.title }}</h2>
             <p v-if="activeQuestion.description" class="qhead__desc">{{ activeQuestion.description }}</p>
             <p class="stage__rules">
               <span v-if="status === 'submissions' && me.role === 'attendee'">{{ t('compete.ruleEntries', { n: activeQuestion.maxEntriesPerPerson }, activeQuestion.maxEntriesPerPerson) }}</span>
