@@ -168,32 +168,50 @@ watch(() => data.value?.questions, (list, previous) => {
 
 const newQuestion = reactive<QuestionDraft>({ title: '', description: '', maxEntriesPerPerson: 3, votesPerPerson: 2, votesPerJudge: 5 })
 
+// Only the vote limits the current scoring shows are sent. A hidden box (say
+// votes per attendee in a judges-only contest) may hold a stale or empty
+// value, and sending it would fail the whole save for a field nobody can see.
 function questionBody(draft: QuestionDraft) {
+  const scoring = data.value?.competition.scoring
   return {
     title: draft.title.trim(),
     description: draft.description?.trim() || null,
     maxEntriesPerPerson: Number(draft.maxEntriesPerPerson),
-    votesPerPerson: Number(draft.votesPerPerson),
-    votesPerJudge: Number(draft.votesPerJudge)
+    ...(scoring !== 'judges' ? { votesPerPerson: Number(draft.votesPerPerson) } : {}),
+    ...(scoring !== 'public' ? { votesPerJudge: Number(draft.votesPerJudge) } : {})
   }
 }
 
-async function questionRequest(run: () => Promise<unknown>, success: string) {
-  error.value = ''
-  message.value = ''
+// An emptied number box reads as '' and would become 0.
+function questionBodyValid(body: ReturnType<typeof questionBody>) {
+  return [body.maxEntriesPerPerson, body.votesPerPerson, body.votesPerJudge]
+    .every(value => value === undefined || (Number.isInteger(value) && value >= 1))
+}
+
+// Feedback shows under the question that was acted on ('new' for the add
+// form): the page-level notice sits at the top, off screen on a phone.
+const questionNotice = ref<{ id: string, ok: boolean, text: string } | null>(null)
+
+async function questionRequest(id: string, run: () => Promise<unknown>, success: string) {
+  questionNotice.value = null
   try {
     await run()
     await refresh()
-    message.value = success
+    questionNotice.value = { id, ok: true, text: success }
   } catch (err) {
-    fail(err, t('admin.saveFailed'))
+    questionNotice.value = { id, ok: false, text: (err as { data?: { message?: string } })?.data?.message || t('admin.saveFailed') }
   }
 }
 
 function addQuestion() {
   if (!newQuestion.title.trim()) return
-  return questionRequest(async () => {
-    await $fetch(`${api.value}/questions`, { method: 'POST', body: questionBody(newQuestion) })
+  const body = questionBody(newQuestion)
+  if (!questionBodyValid(body)) {
+    questionNotice.value = { id: 'new', ok: false, text: t('adminCompetitions.questionNumbersInvalid') }
+    return
+  }
+  return questionRequest('new', async () => {
+    await $fetch(`${api.value}/questions`, { method: 'POST', body })
     newQuestion.title = ''
     newQuestion.description = ''
   }, t('adminCompetitions.questionAdded'))
@@ -202,9 +220,15 @@ function addQuestion() {
 function saveQuestion(question: Question) {
   const draft = questionDrafts.value[question.id]
   if (!draft?.title.trim()) return
+  const body = questionBody(draft)
+  if (!questionBodyValid(body)) {
+    questionNotice.value = { id: question.id, ok: false, text: t('adminCompetitions.questionNumbersInvalid') }
+    return
+  }
   return questionRequest(
+    question.id,
     async () => {
-      await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'PATCH', body: questionBody(draft) })
+      await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'PATCH', body })
     },
     t('adminCompetitions.questionSaved')
   )
@@ -217,7 +241,7 @@ function moveQuestion(index: number, delta: -1 | 1) {
   const target = index + delta
   if (target < 0 || target >= list.length) return
   ;[list[index], list[target]] = [list[target]!, list[index]!]
-  return questionRequest(async () => {
+  return questionRequest(list[target]!.id, async () => {
     for (const [order, question] of list.entries()) {
       if (question.sortOrder === order) continue
       await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'PATCH', body: { sortOrder: order } })
@@ -229,6 +253,7 @@ function deleteQuestion(question: Question) {
   const count = (data.value?.results ?? []).filter(row => row.questionId === question.id).length
   if (!confirm(t('adminCompetitions.deleteQuestionConfirm', { title: question.title, n: count }))) return
   return questionRequest(
+    'list',
     async () => {
       await $fetch(`${api.value}/questions/${encodeURIComponent(question.id)}`, { method: 'DELETE' })
     },
@@ -483,9 +508,20 @@ function formatPhone(phone: string | null) {
                 <button class="minibtn" type="button" :disabled="index === data.questions.length - 1" :aria-label="t('adminCompetitions.moveDown')" @click="moveQuestion(index, 1)">↓</button>
                 <button class="minibtn" type="button" @click="deleteQuestion(question)">{{ t('admin.delete') }}</button>
               </div>
+              <p
+                v-if="questionNotice?.id === question.id"
+                class="qnotice"
+                :class="questionNotice.ok ? 'notice' : 'error'"
+                :role="questionNotice.ok ? 'status' : 'alert'"
+              >
+                {{ questionNotice.text }}
+              </p>
             </form>
           </li>
         </ol>
+        <p v-if="questionNotice?.id === 'list'" class="qnotice" :class="questionNotice.ok ? 'notice' : 'error'" :role="questionNotice.ok ? 'status' : 'alert'">
+          {{ questionNotice.text }}
+        </p>
         <form class="question__form question__form--new" @submit.prevent="addQuestion">
           <label class="field question__title">
             <span class="label">{{ t('adminCompetitions.newQuestion') }}</span>
@@ -506,6 +542,9 @@ function formatPhone(phone: string | null) {
           <div class="question__actions">
             <button class="btn" type="submit" :disabled="!newQuestion.title.trim()">{{ t('adminCompetitions.addQuestion') }}</button>
           </div>
+          <p v-if="questionNotice?.id === 'new'" class="qnotice" :class="questionNotice.ok ? 'notice' : 'error'" :role="questionNotice.ok ? 'status' : 'alert'">
+            {{ questionNotice.text }}
+          </p>
         </form>
       </section>
 
@@ -750,6 +789,7 @@ function formatPhone(phone: string | null) {
 .question__num { font-family: var(--font-serif); font-size: 1.4rem; color: var(--accent); align-self: center; min-width: 1.2rem; }
 .question__title { flex: 1 1 16rem; }
 .question__actions { display: flex; gap: 0.4rem; align-items: center; }
+.qnotice { flex-basis: 100%; margin: 0.2rem 0 0; }
 .minibtn:disabled { opacity: 0.4; cursor: default; }
 .group-title {
   font-family: var(--font-serif);

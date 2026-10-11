@@ -1299,6 +1299,7 @@
     "addQuestion": "เพิ่มหัวข้อ",
     "questionAdded": "เพิ่มหัวข้อแล้ว",
     "questionSaved": "บันทึกหัวข้อแล้ว",
+    "questionNumbersInvalid": "กรุณากรอกตัวเลขทุกช่อง (ตั้งแต่ 1 ขึ้นไป) ก่อนบันทึก",
     "questionDeleted": "ลบหัวข้อแล้ว",
     "deleteQuestionConfirm": "ลบ “{title}”? ภาพ {n} ภาพในหัวข้อนี้และคะแนนโหวตทั้งหมดจะถูกลบ",
     "moveUp": "เลื่อนขึ้น",

@@ -1,6 +1,8 @@
 import { sql, eq } from 'drizzle-orm'
 
-const bodySchema = competitionQuestionSchema.partial({ description: true, sortOrder: true })
+// The admin page leaves out the vote limit the scoring hides (votes per
+// attendee in a judges-only contest); the column default fills it.
+const bodySchema = competitionQuestionSchema.partial({ description: true, sortOrder: true, votesPerPerson: true, votesPerJudge: true })
 
 // Add a question. It goes to the end unless a position is given.
 export default defineEventHandler(async (event) => {

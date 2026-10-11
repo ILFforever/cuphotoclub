@@ -1299,6 +1299,7 @@
     "addQuestion": "Add question",
     "questionAdded": "Question added.",
     "questionSaved": "Question saved.",
+    "questionNumbersInvalid": "Fill in every number with 1 or more before saving.",
     "questionDeleted": "Question deleted.",
     "deleteQuestionConfirm": "Delete “{title}”? Its {n} photos and all their votes will be removed.",
     "moveUp": "Move up",
