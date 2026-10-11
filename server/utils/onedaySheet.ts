@@ -354,8 +354,15 @@ async function runSync(): Promise<Stored> {
   }
 }
 
+// Every open tab polls the AP every 30 s, and each read parses the stored
+// copy out of D1. Under a burst that adds up against the free plan's CPU
+// limit (Error 1102), so a warm isolate reuses its last answer for a few
+// seconds. A sync on this isolate clears it so "Sync now" shows at once.
+const AP_MEMO_MS = 10_000
+let apMemo: { at: number, ap: OnedayAp } | null = null
+
 function sync(): Promise<Stored> {
-  if (!inflight) inflight = runSync().finally(() => { inflight = null })
+  if (!inflight) inflight = runSync().finally(() => { inflight = null; apMemo = null })
   return inflight
 }
 
@@ -364,16 +371,19 @@ function ageMs(iso: string | null): number {
 }
 
 export async function getOnedayAp({ sync: allowSync = true } = {}): Promise<OnedayAp> {
+  if (apMemo && Date.now() - apMemo.at < AP_MEMO_MS) return apMemo.ap
   let stored = await readStored()
   if (allowSync && ageMs(stored.lastAttemptAt) > AUTO_SYNC_MS) {
     try { stored = await sync() } catch { /* serve what we have */ }
   }
-  return {
+  const ap: OnedayAp = {
     items: stored.items ?? ONEDAY_FALLBACK_ITEMS,
     control: stored.control ?? ONEDAY_DEFAULT_CONTROL,
     source: stored.items ? 'sheet' : 'bundled',
     syncedAt: stored.syncedAt
   }
+  apMemo = { at: Date.now(), ap }
+  return ap
 }
 
 // Same re-sync rule as getOnedayAp; one sync refreshes both.

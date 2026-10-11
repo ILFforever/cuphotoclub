@@ -72,6 +72,9 @@ export default defineNuxtConfig({
     // wall blank while the client waits. 60s staleness is fine: the client
     // shuffles its sample anyway.
     '/api/photogrid': { cache: { maxAge: 60 } },
+    // The home page's data on client-side navigation (the SSR'd `/` is swr
+    // below). Public, no session read; runs several D1 queries per call.
+    '/api/home': { cache: { maxAge: 60 } },
 
     // These public pages have no auth-dependent SSR (no page/component reads a
     // session), so serve them from an edge cache and revalidate in the
@@ -93,6 +96,19 @@ export default defineNuxtConfig({
     '/activities': { swr: 120 },
     '/activities/**': { swr: 120 },
     '/events': { swr: 120 },
+    // The same pages in Thai (prefix_except_default). Without these every
+    // Thai visit ran a full uncached SSR. /th/contribute/** stays absent too.
+    '/th': { swr: 120 },
+    '/th/about': { swr: 300 },
+    '/th/contacts': { swr: 300 },
+    '/th/developed-by': { swr: 300 },
+    '/th/members': { swr: 300 },
+    '/th/members/**': { swr: 300 },
+    '/th/albums': { swr: 120 },
+    '/th/albums/**': { swr: 120 },
+    '/th/activities': { swr: 120 },
+    '/th/activities/**': { swr: 120 },
+    '/th/events': { swr: 120 },
     // One Day Trip 2026 (temporary). Every participant opens these from the
     // LINE group at once, so uncached SSR tripped Error 1102 on event day.
     // Short TTL: the cached HTML's AP is only a first paint — useOnedayAp
