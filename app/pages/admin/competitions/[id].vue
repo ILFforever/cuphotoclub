@@ -26,6 +26,7 @@ interface Competition {
   publicWeight: number
   judgeWeight: number
   maxBytesPerPhoto: number
+  showFullRanking: boolean
 }
 
 interface Question {
@@ -89,7 +90,8 @@ const form = reactive({
   scoring: 'public' as Competition['scoring'],
   publicWeight: 1,
   judgeWeight: 1,
-  maxMb: 15
+  maxMb: 15,
+  showFullRanking: true
 })
 
 function resetForm() {
@@ -103,6 +105,7 @@ function resetForm() {
   form.publicWeight = c.publicWeight
   form.judgeWeight = c.judgeWeight
   form.maxMb = Math.round(c.maxBytesPerPhoto / (1024 * 1024))
+  form.showFullRanking = c.showFullRanking
 }
 watch(() => data.value?.competition, resetForm, { immediate: true })
 
@@ -131,7 +134,8 @@ function saveSettings() {
     scoring: form.scoring,
     publicWeight: Number(form.publicWeight),
     judgeWeight: Number(form.judgeWeight),
-    maxBytesPerPhoto: Math.min(15, Math.max(1, Number(form.maxMb))) * 1024 * 1024
+    maxBytesPerPhoto: Math.min(15, Math.max(1, Number(form.maxMb))) * 1024 * 1024,
+    showFullRanking: form.showFullRanking
   }, t('adminCompetitions.saved'))
 }
 
@@ -470,6 +474,13 @@ function formatPhone(phone: string | null) {
             <span class="label">{{ t('adminCompetitions.maxMb') }}</span>
             <input v-model.number="form.maxMb" class="input" type="number" min="1" max="15">
           </label>
+          <label class="field field--wide check">
+            <span class="check__row">
+              <input v-model="form.showFullRanking" class="check__box" type="checkbox">
+              <span class="check__text">{{ t('adminCompetitions.showFullRanking') }}</span>
+            </span>
+            <span class="hint">{{ t('adminCompetitions.showFullRankingHint') }}</span>
+          </label>
           <div class="form__actions">
             <button class="btn" type="submit" :disabled="saving">{{ saving ? t('admin.saving') : t('admin.save') }}</button>
           </div>
@@ -720,6 +731,9 @@ function formatPhone(phone: string | null) {
 .field { display: flex; flex-direction: column; gap: 0.35rem; flex: 1 1 14rem; }
 .field--wide { flex-basis: 100%; }
 .field--small { flex: 0 1 9.5rem; }
+.check__row { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+.check__box { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.check__text { font-family: var(--font-sans); font-size: 0.85rem; color: var(--dark); }
 .form__actions { flex-basis: 100%; }
 .label { font-family: var(--font-sans); font-size: 0.55rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .input {

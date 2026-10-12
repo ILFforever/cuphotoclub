@@ -455,6 +455,9 @@ export const competitions = sqliteTable('competitions', {
   votesPerPerson: integer('votes_per_person').notNull().default(2),
   votesPerJudge: integer('votes_per_judge').notNull().default(5),
   maxBytesPerPhoto: integer('max_bytes_per_photo').notNull().default(15 * 1024 * 1024),
+  // Public results page: false shows only the podium (top three ranks) and
+  // the results API leaves every other entry out for non-admins.
+  showFullRanking: integer('show_full_ranking', { mode: 'boolean' }).notNull().default(true),
   createdBy: integer('created_by').references(() => users.id),
   createdAt,
   updatedAt

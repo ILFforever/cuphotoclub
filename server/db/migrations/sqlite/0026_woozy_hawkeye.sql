@@ -1,0 +1,1 @@
+ALTER TABLE `competitions` ADD `show_full_ranking` integer DEFAULT true NOT NULL;

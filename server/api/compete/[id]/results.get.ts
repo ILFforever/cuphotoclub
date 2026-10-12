@@ -8,14 +8,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'ยังไม่ประกาศผล' })
   }
 
-  const [results, questions] = await Promise.all([computeResults(competition), listQuestions(competition.id)])
+  const [all, questions] = await Promise.all([computeResults(competition), listQuestions(competition.id)])
+  // Ranking hidden: the public only ever gets the podium (ranks 1–3 with a
+  // point), so the rest can't be read off the response either. Admins keep
+  // every row; the page itself still shows only the podium to everyone.
+  const results = competition.showFullRanking || isAdmin
+    ? all
+    : all.filter(row => row.rank <= 3 && row.score > 0)
   setHeader(event, 'Cache-Control', 'private, no-store')
   return {
     competition: {
       id: competition.id,
       title: competition.title,
       status: competition.status,
-      scoring: competition.scoring
+      scoring: competition.scoring,
+      showFullRanking: competition.showFullRanking
     },
     preview: competition.status !== 'results',
     // Each question has its own winners; results carry questionId and are

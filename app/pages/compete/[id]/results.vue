@@ -3,7 +3,8 @@
 //
 // Built to be put on a projector: press "Start the reveal", and 3rd → 2nd →
 // 1st are announced one at a time behind a countdown, with confetti in the
-// rank's colour. After the podium the full ranking is listed underneath.
+// rank's colour. After the podium the full ranking is listed underneath,
+// unless the admin has hidden it (then only the podium is ever shown).
 //
 // Each question has its own winners, so the reveal runs per question: pick
 // one from the tabs, reveal it, move on to the next. Progress is kept per
@@ -33,7 +34,7 @@ interface ResultRow {
 }
 
 interface ResultsState {
-  competition: { id: string, title: string, status: string, scoring: 'public' | 'judges' | 'both' }
+  competition: { id: string, title: string, status: string, scoring: 'public' | 'judges' | 'both', showFullRanking: boolean }
   preview: boolean
   questions: { id: string, title: string }[]
   results: ResultRow[]
@@ -309,7 +310,7 @@ const visibleRanks = computed(() => {
 
       <template v-if="allRevealed && hasResults">
         <p class="vr__congrats">{{ t('compete.congrats') }}</p>
-        <section class="vr__table-wrap">
+        <section v-if="data.competition.showFullRanking" class="vr__table-wrap">
           <h2 class="vr__table-title">{{ t('compete.fullRanking') }}</h2>
           <ol class="vr__table">
             <li v-for="row in questionResults" :key="row.id" class="vr__row">

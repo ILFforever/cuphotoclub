@@ -1367,6 +1367,8 @@
     "votesPerPerson": "Votes per attendee",
     "votesPerJudge": "Votes per judge",
     "maxMb": "Max MB per photo",
+    "showFullRanking": "Show full ranking on the results page",
+    "showFullRankingHint": "Off: the public results show only the top three. You still see every rank here.",
     "attendees": "Attendees",
     "rosterHint": "Paste rows from a spreadsheet, or pick a CSV: name, phone, group (group is optional). Importing again updates people by phone number and never duplicates anyone.",
     "rosterPlaceholder": "Somchai Jaidee, 081-234-5678, Group 3",
