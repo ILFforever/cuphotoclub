@@ -13,7 +13,8 @@ export const competitionSettingsSchema = z.object({
   judgeWeight: z.number().int().min(0).max(100),
   maxBytesPerPhoto: z.number().int().min(256 * 1024).max(MAX_UPLOAD_BYTES),
   // Off: the public results show only the podium (see the column comment).
-  showFullRanking: z.boolean().default(true)
+  showFullRanking: z.boolean().default(true),
+  podiumPlaces: z.number().int().min(1).max(3).default(3)
 })
 
 export type CompetitionSettings = z.infer<typeof competitionSettingsSchema>

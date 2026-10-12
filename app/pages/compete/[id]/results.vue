@@ -3,8 +3,9 @@
 //
 // Built to be put on a projector: press "Start the reveal", and 3rd → 2nd →
 // 1st are announced one at a time behind a countdown, with confetti in the
-// rank's colour. After the podium the full ranking is listed underneath,
-// unless the admin has hidden it (then only the podium is ever shown).
+// rank's colour (or fewer places, as the admin sets). After the podium the
+// full ranking is listed underneath, unless the admin has hidden it (then
+// only the podium is ever shown).
 //
 // Each question has its own winners, so the reveal runs per question: pick
 // one from the tabs, reveal it, move on to the next. Progress is kept per
@@ -34,7 +35,7 @@ interface ResultRow {
 }
 
 interface ResultsState {
-  competition: { id: string, title: string, status: string, scoring: 'public' | 'judges' | 'both', showFullRanking: boolean }
+  competition: { id: string, title: string, status: string, scoring: 'public' | 'judges' | 'both', showFullRanking: boolean, podiumPlaces: number }
   preview: boolean
   questions: { id: string, title: string }[]
   results: ResultRow[]
@@ -48,6 +49,8 @@ useHead(() => ({ title: data.value?.competition.title ? `${data.value.competitio
 
 const REVEAL_ORDER = [3, 2, 1] as const
 type PodiumRank = typeof REVEAL_ORDER[number]
+// How many podium places this competition reveals (1–3).
+const podiumPlaces = computed(() => data.value?.competition.podiumPlaces ?? 3)
 
 const questions = computed(() => data.value?.questions ?? [])
 const selectedQuestionId = ref<string | null>(null)
@@ -64,12 +67,12 @@ const questionResults = computed(() =>
   (data.value?.results ?? []).filter(row => row.questionId === activeQuestion.value?.id)
 )
 
-// Top three distinct ranks with at least one point. Ties share a rank, so a
-// rank can hold several photos.
+// The podium's distinct ranks with at least one point. Ties share a rank, so
+// a rank can hold several photos.
 const byRank = computed(() => {
   const map = new Map<number, ResultRow[]>()
   for (const row of questionResults.value) {
-    if (row.rank > 3 || row.score <= 0) continue
+    if (row.rank > podiumPlaces.value || row.score <= 0) continue
     map.set(row.rank, [...(map.get(row.rank) ?? []), row])
   }
   return map

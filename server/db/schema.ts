@@ -458,6 +458,10 @@ export const competitions = sqliteTable('competitions', {
   // Public results page: false shows only the podium (top three ranks) and
   // the results API leaves every other entry out for non-admins.
   showFullRanking: integer('show_full_ranking', { mode: 'boolean' }).notNull().default(true),
+  // How many podium places the reveal announces (1–3, counted by rank, so
+  // ties can put several photos in one place). With the full ranking hidden,
+  // these places are all the public ever gets.
+  podiumPlaces: integer('podium_places').notNull().default(3),
   createdBy: integer('created_by').references(() => users.id),
   createdAt,
   updatedAt

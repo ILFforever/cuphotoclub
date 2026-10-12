@@ -27,6 +27,7 @@ interface Competition {
   judgeWeight: number
   maxBytesPerPhoto: number
   showFullRanking: boolean
+  podiumPlaces: number
 }
 
 interface Question {
@@ -91,7 +92,8 @@ const form = reactive({
   publicWeight: 1,
   judgeWeight: 1,
   maxMb: 15,
-  showFullRanking: true
+  showFullRanking: true,
+  podiumPlaces: 3
 })
 
 function resetForm() {
@@ -106,6 +108,7 @@ function resetForm() {
   form.judgeWeight = c.judgeWeight
   form.maxMb = Math.round(c.maxBytesPerPhoto / (1024 * 1024))
   form.showFullRanking = c.showFullRanking
+  form.podiumPlaces = c.podiumPlaces
 }
 watch(() => data.value?.competition, resetForm, { immediate: true })
 
@@ -135,7 +138,8 @@ function saveSettings() {
     publicWeight: Number(form.publicWeight),
     judgeWeight: Number(form.judgeWeight),
     maxBytesPerPhoto: Math.min(15, Math.max(1, Number(form.maxMb))) * 1024 * 1024,
-    showFullRanking: form.showFullRanking
+    showFullRanking: form.showFullRanking,
+    podiumPlaces: Number(form.podiumPlaces)
   }, t('adminCompetitions.saved'))
 }
 
@@ -473,6 +477,13 @@ function formatPhone(phone: string | null) {
           <label class="field field--small">
             <span class="label">{{ t('adminCompetitions.maxMb') }}</span>
             <input v-model.number="form.maxMb" class="input" type="number" min="1" max="15">
+          </label>
+          <label class="field">
+            <span class="label">{{ t('adminCompetitions.podiumPlaces') }}</span>
+            <select v-model.number="form.podiumPlaces" class="input">
+              <option v-for="n in [3, 2, 1]" :key="n" :value="n">{{ t('adminCompetitions.podiumPlacesOption', { n }) }}</option>
+            </select>
+            <span class="hint">{{ t('adminCompetitions.podiumPlacesHint') }}</span>
           </label>
           <label class="field field--wide check">
             <span class="check__row">

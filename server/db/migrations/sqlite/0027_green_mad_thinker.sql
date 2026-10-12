@@ -1,0 +1,1 @@
+ALTER TABLE `competitions` ADD `podium_places` integer DEFAULT 3 NOT NULL;
